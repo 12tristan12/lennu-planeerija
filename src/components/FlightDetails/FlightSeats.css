@@ -1,0 +1,51 @@
+/* Üldine disain */
+.seats-container {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .seats-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    padding: 20px;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+  }
+  
+  /* Koha nupu stiilid */
+  .seat {
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  
+  .seat:hover:not(:disabled) {
+    transform: scale(1.1);
+  }
+  
+  .available {
+    background-color: #4CAF50; /* Roheline */
+    color: white;
+  }
+  
+  .booked {
+    background-color: #ff4444; /* Punane */
+    cursor: not-allowed;
+  }
+  
+  /* Laadimise ja veateated */
+  .loading, .error {
+    text-align: center;
+    padding: 20px;
+    font-size: 1.2em;
+  }
+  
+  .error {
+    color: #ff4444;
+  }
