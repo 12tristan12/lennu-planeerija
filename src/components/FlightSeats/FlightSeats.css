@@ -1,0 +1,16 @@
+.seats-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 50px);
+    gap: 10px;
+    padding: 20px;
+  }
+  
+  .booked {
+    background-color: #ff4444;
+    cursor: not-allowed;
+  }
+  
+  .available {
+    background-color: #4CAF50;
+    cursor: pointer;
+  }

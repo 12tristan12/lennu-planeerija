@@ -1,13 +1,18 @@
 package com.CGIpraktika.lennu_planeerija.model;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
+
 
 @Entity
 @AllArgsConstructor
@@ -23,6 +28,8 @@ public class Flight {
     private LocalDateTime arrivalTime;
     private double price;
     private String airline;
+    @OneToMany(mappedBy = "flight", cascade = CascadeType.ALL)
+    private List<Seats> seats = new ArrayList<>();
 
     public Flight() {}
 
@@ -33,6 +40,9 @@ public class Flight {
         this.departureTime = LocalDateTime.parse(departureTime);
         this.arrivalTime = LocalDateTime.parse(arrivalTime);
         this.price = price;
+    }
+    public List<Seats> getSeats(){
+        return seats;
     }
     public Long getId(){
         return id;
@@ -55,4 +65,5 @@ public class Flight {
     public LocalDateTime getArrivalTime(){
         return arrivalTime;
     }
+    
 }
