@@ -27,6 +27,9 @@ public class Seats {
     @SuppressWarnings("FieldMayBeFinal")
     private Flight flight;
 
+    @SuppressWarnings("FieldMayBeFinal")
+    private Double price;
+
     public Seats() {
         this.seatNumber ="g";
         this.isBooked = false;
@@ -45,6 +48,9 @@ public class Seats {
     public Long getId(){
         return id;
     }
+    public Double getPrice() {
+        return price;
+    }
     public void setIsBooked(boolean x){
         isBooked = x;
     }
@@ -54,8 +60,7 @@ public class Seats {
     public void setFlight(Flight x){
         flight = x;
     }
-
-
-
-    
+    public void setPrice(Double price) {
+        this.price = price;
+    }
 }

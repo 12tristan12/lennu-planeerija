@@ -35,13 +35,24 @@ public class FlightService {
     private void generateSeatsForFlight(Flight flight, int numRows) {
         List<Seats> seats = new ArrayList<>();
         String[] letters = {"A", "B", "C", "D", "E", "F"};
+        Random random = new Random();
         
         for (int row = 1; row <= numRows; row++) {
             for (String letter : letters) {
                 Seats seat = new Seats();
                 seat.setSeatNumber(row + letter);
-                // 30% chance for a seat to be occupied
-                seat.setIsBooked(random.nextDouble() < 0.3);
+                seat.setIsBooked(random.nextDouble() < 0.3); // 30% chance to be occupied
+                
+                // Set price based on row
+                double price;
+                if (row <= 5) {
+                    price = 89.0; // First class
+                } else if (row <= 10) {
+                    price = 69.0; // Business class
+                } else {
+                    price = 49.0; // Economy class
+                }
+                seat.setPrice(price);
                 seat.setFlight(flight);
                 seats.add(seat);
             }

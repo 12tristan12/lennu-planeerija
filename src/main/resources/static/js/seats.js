@@ -31,47 +31,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Generate seat layout
     async function generateSeats() {
-        const rows = ['A', 'B', 'C', 'D', 'E', 'F'];
+        // Split rows into left and right sections
+        const leftRows = ['A', 'B', 'C'];
+        const rightRows = ['D', 'E', 'F'];
         const numRows = 20;
 
         try {
-            // Get seats data from backend
             const seatStatus = await api.getSeats(flightId);
-            console.log('Seat status from backend:', seatStatus);
-
             seatsGrid.innerHTML = '';
             
             // Create header row
             const headerRow = document.createElement('div');
             headerRow.className = 'seat-row header';
-            headerRow.innerHTML = '<div class="row-number"></div>' + 
-                rows.map(letter => `<div class="seat-letter">${letter}</div>`).join('');
+            headerRow.innerHTML = `
+                <div class="row-number"></div>
+                ${leftRows.map(letter => `<div class="seat-letter">${letter}</div>`).join('')}
+                <div class="aisle"></div>
+                ${rightRows.map(letter => `<div class="seat-letter">${letter}</div>`).join('')}
+            `;
             seatsGrid.appendChild(headerRow);
 
             // Generate seats
             for (let i = 1; i <= numRows; i++) {
                 const row = document.createElement('div');
-                row.className = 'seat-row';
+                // Add class for price section separators
+                if (i === 1 || i === 6 || i === 11) {
+                    row.className = 'seat-row price-section-start';
+                } else {
+                    row.className = 'seat-row';
+                }
                 
                 const rowNum = document.createElement('div');
                 rowNum.className = 'row-number';
                 rowNum.textContent = i;
                 row.appendChild(rowNum);
 
-                rows.forEach(letter => {
-                    const seat = document.createElement('div');
-                    const seatNumber = `${i}${letter}`;
-                    const seatInfo = seatStatus.find(s => s.seatNumber === seatNumber);
-                    const isOccupied = seatInfo?.isBooked || false;
-                    
-                    seat.className = `seat ${isOccupied ? 'occupied' : 'available'}`;
-                    seat.dataset.seatNumber = seatNumber;
-                    seat.textContent = seatNumber;
-                    
-                    if (!isOccupied) {
-                        seat.addEventListener('click', () => toggleSeatSelection(seat));
-                    }
-                    row.appendChild(seat);
+                // Add left side seats
+                leftRows.forEach(letter => {
+                    addSeat(row, i, letter, seatStatus);
+                });
+
+                // Add center aisle
+                const aisle = document.createElement('div');
+                aisle.className = 'aisle';
+                row.appendChild(aisle);
+
+                // Add right side seats
+                rightRows.forEach(letter => {
+                    addSeat(row, i, letter, seatStatus);
                 });
 
                 seatsGrid.appendChild(row);
@@ -80,6 +87,24 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error generating seats:', error);
             seatsGrid.innerHTML = '<p>Error loading seat plan. Please try again later.</p>';
         }
+    }
+
+    // Helper function to create seats
+    function addSeat(row, i, letter, seatStatus) {
+        const seat = document.createElement('div');
+        const seatNumber = `${i}${letter}`;
+        const seatInfo = seatStatus.find(s => s.seatNumber === seatNumber);
+        const isOccupied = seatInfo?.isBooked || false;
+        
+        seat.className = `seat ${isOccupied ? 'occupied' : 'available'}`;
+        seat.dataset.seatNumber = seatNumber;
+        seat.dataset.price = seatInfo?.price || '49';
+        seat.textContent = seatNumber;
+        
+        if (!isOccupied) {
+            seat.addEventListener('click', () => toggleSeatSelection(seat));
+        }
+        row.appendChild(seat);
     }
 
     function toggleSeatSelection(seatElement) {
