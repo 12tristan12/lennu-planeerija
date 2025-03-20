@@ -1,4 +1,4 @@
-static/index.html
+index.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,37 +8,43 @@ static/index.html
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <h1>Tere tulemast lennuplaneerijasse!</h1>
-    
-    <div id="search-form">
-        <h2>Otsi lende</h2>
-        <form id="flight-search">
-            <div>
-                <label for="departure">Lähtekoht:</label>
-                <input type="text" id="departure" name="departure" required>
-            </div>
-            <div>
-                <label for="arrival">Sihtkoht:</label>
-                <input type="text" id="arrival" name="arrival" required>
-            </div>
-            <div>
-                <label for="dateFrom">Väljumiskuupäev:</label>
-                <input type="date" id="dateFrom" name="dateFrom" required>
-            </div>
-            <div>
-                <label for="classType">Klass:</label>
-                <select id="classType" name="classType">
-                    <option value="Economy">Economy</option>
-                    <option value="Business">Business</option>
-                </select>
-            </div>
-            <button type="submit">Otsi lende</button>
-        </form>
-    </div>
+    <div class="container">
+        <h1>Tere tulemast lennuplaneerijasse!</h1>
+        
+        <div id="search-form">
+            <h2>Otsi lende</h2>
+            <form id="flight-search">
+                <div class="form-group">
+                    <label for="departure">Lähtekoht:</label>
+                    <input type="text" id="departure" name="departure" required>
+                </div>
+                <div class="form-group">
+                    <label for="arrival">Sihtkoht:</label>
+                    <input type="text" id="arrival" name="arrival" required>
+                </div>
+                <div class="form-group">
+                    <label for="dateFrom">Väljumiskuupäev:</label>
+                    <input type="date" id="dateFrom" name="dateFrom" required>
+                </div>
+                <div class="form-group">
+                    <label for="classType">Klass:</label>
+                    <select id="classType" name="classType">
+                        <option value="Economy">Economy</option>
+                        <option value="Business">Business</option>
+                    </select>
+                </div>
+                <button type="submit" class="search-button">Otsi lende</button>
+            </form>
+        </div>
 
-    <div id="flights-list">
-        <h2>Saadaval lennud</h2>
-        <ul id="flights"></ul>
+        <div id="flights-container">
+            <h2>Saadaval lennud</h2>
+            <div class="flights-grid">
+                <ul id="flights" class="flights-list">
+                    <!-- Flights will be dynamically inserted here -->
+                </ul>
+            </div>
+        </div>
     </div>
 
     <script src="js/api.js"></script>
