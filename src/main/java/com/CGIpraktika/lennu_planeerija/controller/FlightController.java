@@ -68,4 +68,9 @@ public class FlightController {
     return ResponseEntity.ok("Koht broneeritud: " + seatNumber);
     }
     
+    @GetMapping("/flights/{flightId}/seats")
+    public ResponseEntity<List<Seats>> getFlightSeats(@PathVariable Long flightId) {
+        List<Seats> seats = flightService.getSeatsForFlight(flightId);
+        return ResponseEntity.ok(seats);
+    }
 }

@@ -1,8 +1,8 @@
 package com.CGIpraktika.lennu_planeerija.service;
 
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import org.springframework.stereotype.Service;
 
@@ -15,40 +15,41 @@ import com.CGIpraktika.lennu_planeerija.repository.SeatRepository;
 public class FlightService {
     private final FlightRepository flightRepository;
     private final SeatRepository seatRepository;
+    private final Random random = new Random();
 
     public FlightService(FlightRepository flightRepository, SeatRepository seatRepository) {
         this.flightRepository = flightRepository;
         this.seatRepository = seatRepository;
     }
 
-
     public List<Flight> getAllFlights() {
         return flightRepository.findAll();
     }
 
-
     public Flight addFlight(Flight flight) {
         Flight savedFlight = flightRepository.save(flight);
-        generateSeatsForFlight(savedFlight, 150); 
+        generateSeatsForFlight(savedFlight, 20); // Changed to 20 rows
         return savedFlight;
     }
 
-    private void generateSeatsForFlight(Flight flight, int seatCount) {
+    private void generateSeatsForFlight(Flight flight, int numRows) {
         List<Seats> seats = new ArrayList<>();
-        double suvaline = 0;
-        for (int i = 1; i <= seatCount; i++) {
-            suvaline = Math.random();
-            Seats seat = new Seats();
-            seat.setSeatNumber("A" + i); 
-            if (suvaline > 0.4){
-                seat.setIsBooked(false);
+        String[] letters = {"A", "B", "C", "D", "E", "F"};
+        
+        for (int row = 1; row <= numRows; row++) {
+            for (String letter : letters) {
+                Seats seat = new Seats();
+                seat.setSeatNumber(row + letter);
+                // 30% chance for a seat to be occupied
+                seat.setIsBooked(random.nextDouble() < 0.3);
+                seat.setFlight(flight);
+                seats.add(seat);
             }
-            else{
-                seat.setIsBooked(true);
-            }
-            seat.setFlight(flight); 
-            seats.add(seat);
         }
         seatRepository.saveAll(seats);
+    }
+
+    public List<Seats> getSeatsForFlight(Long flightId) {
+        return seatRepository.findByFlightId(flightId);
     }
 }

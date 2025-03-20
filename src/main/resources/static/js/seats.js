@@ -32,12 +32,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Generate seat layout
     async function generateSeats() {
         const rows = ['A', 'B', 'C', 'D', 'E', 'F'];
-        const numRows = 20; // Number of rows in the plane
+        const numRows = 20;
 
         try {
+            // Get seats data from backend
+            const seatStatus = await api.getSeats(flightId);
+            console.log('Seat status from backend:', seatStatus);
+
             seatsGrid.innerHTML = '';
             
-            // Create header row with seat letters
+            // Create header row
             const headerRow = document.createElement('div');
             headerRow.className = 'seat-row header';
             headerRow.innerHTML = '<div class="row-number"></div>' + 
@@ -49,18 +53,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const row = document.createElement('div');
                 row.className = 'seat-row';
                 
-                // Add row number
                 const rowNum = document.createElement('div');
                 rowNum.className = 'row-number';
                 rowNum.textContent = i;
                 row.appendChild(rowNum);
 
-                // Add seats in the row
                 rows.forEach(letter => {
                     const seat = document.createElement('div');
                     const seatNumber = `${i}${letter}`;
-                    // Randomly determine if seat is occupied (30% chance)
-                    const isOccupied = Math.random() < 0.3;
+                    const seatInfo = seatStatus.find(s => s.seatNumber === seatNumber);
+                    const isOccupied = seatInfo?.isBooked || false;
                     
                     seat.className = `seat ${isOccupied ? 'occupied' : 'available'}`;
                     seat.dataset.seatNumber = seatNumber;
