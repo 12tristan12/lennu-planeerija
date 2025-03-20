@@ -35,10 +35,17 @@ public class FlightService {
 
     private void generateSeatsForFlight(Flight flight, int seatCount) {
         List<Seats> seats = new ArrayList<>();
+        double suvaline = 0;
         for (int i = 1; i <= seatCount; i++) {
+            suvaline = Math.random();
             Seats seat = new Seats();
             seat.setSeatNumber("A" + i); 
-            seat.setIsBooked(false);
+            if (suvaline > 0.4){
+                seat.setIsBooked(false);
+            }
+            else{
+                seat.setIsBooked(true);
+            }
             seat.setFlight(flight); 
             seats.add(seat);
         }
