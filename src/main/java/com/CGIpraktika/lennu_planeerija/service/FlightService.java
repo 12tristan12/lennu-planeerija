@@ -63,4 +63,17 @@ public class FlightService {
     public List<Seats> getSeatsForFlight(Long flightId) {
         return seatRepository.findByFlightId(flightId);
     }
+
+    public void deleteFlight(Long id) {
+        // First find the flight to ensure it exists
+        Flight flight = flightRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Flight not found with id: " + id));
+            
+        // Delete associated seats first
+        List<Seats> seats = seatRepository.findByFlightId(id);
+        seatRepository.deleteAll(seats);
+        
+        // Then delete the flight
+        flightRepository.deleteById(id);
+    }
 }
