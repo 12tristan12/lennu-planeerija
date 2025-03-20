@@ -1,1 +1,47 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Flight Planning</title><link rel="stylesheet" href="lennuleht.css"><script defer="defer" src="/12tristan12/lennu-planeerija/static/js/main.caa08ed8.js"></script></head><body><header><h1>EestiAir</h1></header><main><section id="otsing"><h2>Otsi lende</h2><form action="/flights"><label for="lähtelinn">Lähtelinn:</label> <input id="lähtelinn" name="lähtelinn" required><br><br><label for="saabumislinn">Saabumine:</label> <input id="saabumislinn" name="saabumislinn" required><br><br><label for="lahkumisaeg">Lahkumisaeg:</label> <input type="date" id="lahkumisaeg" name="lahkumisaeg" required><br><br><label for="saabumisaeg">'Saabumisaeg:</label> <input type="date" id="saabumisaeg" name="saabumisaeg"><br><br><label for="isteklass">Iste klass:</label> <select id="isteklass" name="isteklass" required><option value="economy">Economy</option><option value="business">Business</option><option value="first">First Class</option></select><br><br><button type="submit">Otsi lende</button></form></section><section id="tulemused"><h2>Available Flights</h2><table><thead><tr><th>Lennu number</th><th>Lähteaeg</th><th>Saabumisaeg</th><th>Isteklass</th><th>Hind</th></tr></thead><tbody><tr><td>AA123</td><td>10:00 AM</td><td>12:00 PM</td><td>Economy</td><td>$350</td></tr><tr><td>BA456</td><td>2:00 PM</td><td>4:00 PM</td><td>Business</td><td>800€</td></tr></tbody></table></section><section id="istesoovitus"><h2>Iste soovitused</h2><p>Vastavalt sinu soovidele, on need parimad:</p><ul><li>Seat 12A (Window) - Kõige parem privaatsuseks ja mugavuseks</li><li>Seat 10B (Aisle) - Kõige parem ligipääs tuelettruumi</li><li>Seat 15C (Middle) - Kõige rohkem jalaruumi</li></ul></section></main><footer><p>&copy; 2025 EestiAir. All rights reserved.</p></footer></body></html>
+static/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lennu Planeerija</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <h1>Tere tulemast lennuplaneerijasse!</h1>
+    
+    <div id="search-form">
+        <h2>Otsi lende</h2>
+        <form id="flight-search">
+            <div>
+                <label for="departure">Lähtekoht:</label>
+                <input type="text" id="departure" name="departure" required>
+            </div>
+            <div>
+                <label for="arrival">Sihtkoht:</label>
+                <input type="text" id="arrival" name="arrival" required>
+            </div>
+            <div>
+                <label for="dateFrom">Väljumiskuupäev:</label>
+                <input type="date" id="dateFrom" name="dateFrom" required>
+            </div>
+            <div>
+                <label for="classType">Klass:</label>
+                <select id="classType" name="classType">
+                    <option value="Economy">Economy</option>
+                    <option value="Business">Business</option>
+                </select>
+            </div>
+            <button type="submit">Otsi lende</button>
+        </form>
+    </div>
+
+    <div id="flights-list">
+        <h2>Saadaval lennud</h2>
+        <ul id="flights"></ul>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
