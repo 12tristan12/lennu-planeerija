@@ -13,16 +13,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadFlights() {
         try {
-            const flights = await api.getFlights();
+            const response = await fetch('/api/flights');
+            if (!response.ok) {
+                throw new Error('Failed to fetch flights');
+            }
+            const flights = await response.json();
             displayFlights(flights);
         } catch (error) {
             console.error('Error loading flights:', error);
+            flightsList.innerHTML = '<p class="error">Lendude laadimine ebaõnnestus. Palun proovige uuesti.</p>';
         }
     }
 
     function displayFlights(flights) {
         if (!flights || flights.length === 0) {
-            flightsList.innerHTML = '<p>No flights available.</p>';
+            flightsList.innerHTML = '<p>Ühtegi lendu ei leitud.</p>';
             return;
         }
 
@@ -69,11 +74,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle search form submission
     searchForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(searchForm);
-        console.log('Search criteria:', Object.fromEntries(formData));
-        // TODO: Implement search functionality
-        await loadFlights(); // For now, just reload all flights
+        e.preventDefault(); // Prevent form from submitting normally
+        
+        const departure = document.getElementById('departure').value;
+        const arrival = document.getElementById('arrival').value;
+        const dateFrom = document.getElementById('dateFrom').value;
+        const classType = document.getElementById('classType').value;
+
+        // Build search parameters
+        const params = new URLSearchParams();
+        if (departure) params.append('origin', departure);
+        if (arrival) params.append('destination', arrival);
+        if (dateFrom) params.append('departureDate', dateFrom);
+        if (classType) params.append('classType', classType);
+
+        try {
+            const response = await fetch(`/api/flights/search?${params}`);
+            if (!response.ok) {
+                throw new Error('Search failed');
+            }
+            const flights = await response.json();
+            displayFlights(flights);
+        } catch (error) {
+            console.error('Error searching flights:', error);
+            flightsList.innerHTML = '<p class="error">Lendude otsimine ebaõnnestus. Palun proovige uuesti.</p>';
+        }
     });
 
     function displayFlightInfo(flight) {

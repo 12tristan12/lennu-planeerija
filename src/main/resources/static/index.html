@@ -15,34 +15,33 @@
             <form id="flight-search">
                 <div class="form-group">
                     <label for="departure">Lähtekoht:</label>
-                    <input type="text" id="departure" name="departure" required>
+                    <input type="text" id="departure" name="departure">
                 </div>
                 <div class="form-group">
                     <label for="arrival">Sihtkoht:</label>
-                    <input type="text" id="arrival" name="arrival" required>
+                    <input type="text" id="arrival" name="arrival">
                 </div>
                 <div class="form-group">
                     <label for="dateFrom">Väljumiskuupäev:</label>
-                    <input type="date" id="dateFrom" name="dateFrom" required>
+                    <input type="date" id="dateFrom" name="dateFrom">
                 </div>
                 <div class="form-group">
                     <label for="classType">Klass:</label>
                     <select id="classType" name="classType">
+                        <option value="">Kõik klassid</option>
                         <option value="Economy">Economy</option>
                         <option value="Business">Business</option>
+                        <option value="First">First</option>
                     </select>
                 </div>
-                <button type="submit" class="search-button">Otsi lende</button>
+                <div class="form-group">
+                    <button type="submit" class="search-btn">Otsi lende</button>
+                </div>
             </form>
         </div>
-
-        <div id="flights-container">
-            <h2>Saadaval lennud</h2>
-            <div class="flights-grid">
-                <ul id="flights-list" class="flights-list">
-                    <!-- Flights will be dynamically inserted here -->
-                </ul>
-            </div>
+        
+        <div class="flights-container">
+            <ul id="flights-list" class="flights-list"></ul>
         </div>
     </div>
 
