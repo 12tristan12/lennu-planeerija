@@ -20,6 +20,11 @@ public class Seats {
     private String seatNumber; 
     @SuppressWarnings("FieldMayBeFinal")
     private boolean isBooked; 
+    private boolean isFirstClass;
+    private boolean isBusinessClass;
+    private boolean isEconomyClass;
+    private boolean isWindowSeat;
+    private boolean isExtraLegRoom;
 
     @ManyToOne
     @JsonIgnore 
@@ -34,6 +39,22 @@ public class Seats {
         this.seatNumber ="g";
         this.isBooked = false;
         this.flight = null;
+    }
+    
+    public boolean getIsFirstClass() {
+        return isFirstClass;
+    }
+    public boolean getIsBusinessClass() {
+        return isBusinessClass;
+    }
+    public boolean getIsEconomyClass() {
+        return isEconomyClass;
+    }
+    public boolean getIsWindowSeat() {
+        return isWindowSeat;
+    }
+    public boolean getIsExtraLegRoom() {
+        return isExtraLegRoom;
     }
 
     public String getSeatNumber(){
@@ -62,5 +83,21 @@ public class Seats {
     }
     public void setPrice(Double price) {
         this.price = price;
+    }
+
+    public void setIsFirstClass(boolean isFirstClass) {
+        this.isFirstClass = isFirstClass;
+    }
+    public void setIsBusinessClass(boolean isBusinessClass) {
+        this.isBusinessClass = isBusinessClass;
+    }
+    public void setIsEconomyClass(boolean isEconomyClass) {
+        this.isEconomyClass = isEconomyClass;
+    }
+    public void setIsWindowSeat(boolean isWindowSeat) {
+        this.isWindowSeat = isWindowSeat;
+    }
+    public void setIsExtraLegRoom(boolean isExtraLegRoom) {
+        this.isExtraLegRoom = isExtraLegRoom;
     }
 }

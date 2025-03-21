@@ -33,6 +33,29 @@
                     <input type="number" id="numberPas" name="numberPas" min="1" max="150">	
                 </div>
                 <div class="form-group">
+                    <label for="seatClass">Istmeklass:</label>
+                    <select id="seatClass" name="seatClass">
+                        <option value="economy">Economy</option>
+                        <option value="business">Business</option>
+                        <option value="first">First Class</option>
+                    </select>
+                </div>
+                
+                <div id="extraLegroom-container" class="form-group">
+                    <label>
+                        <input type="checkbox" id="extraLegroom" name="extraLegroom">
+                        Soovin ekstra jalaruumi
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="windowSeat" name="windowSeat">
+                        Soovin aknaäärset istet
+                    </label>
+                </div>
+                
+                <div class="form-group">
                     <button type="submit" class="search-btn">Otsi lende</button>
                 </div>
             </form>
@@ -40,6 +63,10 @@
         
         <div class="flights-container">
             <ul id="flights-list" class="flights-list"></ul>
+        </div>
+
+        <div id="seats-grid" class="seats-grid" style="display: none;">
+            <!-- Seats will be rendered here -->
         </div>
     </div>
 

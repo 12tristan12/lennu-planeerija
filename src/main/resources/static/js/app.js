@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const flightsList = document.getElementById('flights-list');
     const searchForm = document.getElementById('flight-search');
     const seatsGrid = document.getElementById('seats-grid');
+    const preferencesForm = document.getElementById('seat-preferences-form');
     const confirmButton = document.getElementById('confirm-seats');
     const flightInfo = document.getElementById('flight-info');
     
@@ -13,15 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadFlights() {
         try {
-            const response = await fetch('/api/flights');
-            if (!response.ok) {
-                throw new Error('Failed to fetch flights');
-            }
-            const flights = await response.json();
+            const flights = await api.getFlights();
             displayFlights(flights);
         } catch (error) {
             console.error('Error loading flights:', error);
-            flightsList.innerHTML = '<p class="error">Lendude laadimine ebaõnnestus. Palun proovige uuesti.</p>';
+            flightsList.innerHTML = '<p>Viga lendude laadimisel</p>';
         }
     }
 
@@ -113,12 +110,20 @@ document.addEventListener('DOMContentLoaded', () => {
         seatsGrid.innerHTML = '';
         seats.forEach(seat => {
             const seatElement = document.createElement('div');
-            seatElement.className = `seat ${seat.status}`;
+            seatElement.className = `seat ${seat.isBooked ? 'occupied' : 'available'}`;
             seatElement.textContent = seat.seatNumber;
+            seatElement.dataset.seatNumber = seat.seatNumber;
             
-            if (seat.status === 'available') {
+            if (!seat.isBooked) {
                 seatElement.addEventListener('click', () => toggleSeatSelection(seatElement, seat));
             }
+            
+            // Update data attributes to match Java names
+            seatElement.dataset.isFirstClass = seat.isFirstClass;
+            seatElement.dataset.isBusinessClass = seat.isBusinessClass;
+            seatElement.dataset.isEconomyClass = seat.isEconomyClass;
+            seatElement.dataset.isWindowSeat = seat.isWindowSeat;
+            seatElement.dataset.isExtraLegRoom = seat.isExtraLegRoom;
             
             seatsGrid.appendChild(seatElement);
         });
@@ -161,4 +166,114 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     loadSeats();
+    
+    window.showSeatPreferencesModal = function(flightId) {
+        const modal = document.getElementById('seat-preferences-modal');
+        if (!modal) return;
+        
+        modal.style.display = "block";
+        modal.dataset.flightId = flightId;
+
+        const seatClass = document.getElementById('seatClass');
+        const extraLegroomContainer = document.getElementById('extraLegroom-container');
+
+        // Initial visibility of extra legroom option
+        extraLegroomContainer.style.display = 
+            seatClass.value === 'economy' ? 'block' : 'none';
+
+        // Update visibility when seat class changes
+        seatClass.onchange = function() {
+            extraLegroomContainer.style.display = 
+                this.value === 'economy' ? 'block' : 'none';
+        };
+    };
+
+    async function filterAndDisplaySeats(preferences, flightId) {
+        try {
+            const seats = await api.getSeats(flightId);
+            const filteredSeats = seats.filter(seat => {
+                // Match the Java class property names
+                if (preferences.seatClass === 'economy' && !seat.isEconomyClass) {
+                    return false;
+                }
+                if (preferences.seatClass === 'business' && !seat.isBusinessClass) {
+                    return false;
+                }
+                if (preferences.seatClass === 'first' && !seat.isFirstClass) {
+                    return false;
+                }
+                if (preferences.windowSeat && !seat.isWindowSeat) {
+                    return false;
+                }
+                if (preferences.extraLegroom && !seat.isExtraLegRoom) {
+                    return false;
+                }
+                return !seat.isBooked; // Use isBooked instead of status
+            });
+
+            // Sort seats by preference matching
+            const sortedSeats = filteredSeats.sort((a, b) => {
+                let scoreA = 0;
+                let scoreB = 0;
+
+                if (preferences.windowSeat) {
+                    scoreA += a.isWindowSeat ? 1 : 0;
+                    scoreB += b.isWindowSeat ? 1 : 0;
+                }
+                if (preferences.extraLegroom && preferences.seatClass === 'economy') {
+                    scoreA += a.isExtraLegRoom ? 1 : 0;
+                    scoreB += b.isExtraLegRoom ? 1 : 0;
+                }
+
+                return scoreB - scoreA;
+            });
+
+            renderSeats(sortedSeats);
+            
+            // Highlight recommended seats
+            if (sortedSeats.length > 0) {
+                highlightRecommendedSeats(sortedSeats.slice(0, 3)); // Highlight top 3 recommendations
+            }
+        } catch (error) {
+            console.error('Error filtering seats:', error);
+        }
+    }
+
+    function highlightRecommendedSeats(recommendedSeats) {
+        recommendedSeats.forEach((seat, index) => {
+            const seatElement = document.querySelector(`[data-seat-number="${seat.seatNumber}"]`);
+            if (seatElement) {
+                seatElement.classList.add('recommended');
+                seatElement.setAttribute('title', `Soovitatud istekoht #${index + 1}`);
+            }
+        });
+    }
+
+    // Update seat preferences form handler
+    if (preferencesForm) {
+        preferencesForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const preferences = {
+                seatClass: document.getElementById('seatClass').value,
+                extraLegroom: document.getElementById('extraLegroom').checked,
+                windowSeat: document.getElementById('windowSeat').checked
+            };
+            
+            const flightId = document.getElementById('seat-preferences-modal').dataset.flightId;
+            await filterAndDisplaySeats(preferences, flightId);
+            document.getElementById('seat-preferences-modal').style.display = "none";
+            
+            // Show seats grid after filtering
+            document.getElementById('seats-grid').style.display = 'block';
+        });
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('seat-preferences-modal');
+        if (event.target === modal) {
+            modal.style.display = "none";
+        }
+    };
 });

@@ -53,15 +53,29 @@ public class FlightService {
                 Seats seat = new Seats();
                 seat.setSeatNumber(row + letter);
                 seat.setIsBooked(random.nextDouble() < 0.3);
+                if (letter.equals("A") || letter.equals("F")) {
+                    seat.setIsWindowSeat(true);
+                }
                 
                 // Calculate price based on class using price from database
                 double seatPrice;
                 if (row <= 5) {
                     seatPrice = price + 40.0; // First class (+40€)
+                    seat.setIsFirstClass(true);
+                    seat.setIsExtraLegRoom(true);
                 } else if (row <= 10) {
                     seatPrice = price + 20.0; // Business class (+20€)
+                    seat.setIsBusinessClass(true);
+                    seat.setIsExtraLegRoom(true);
                 } else {
+                    if (row == 11){
+                        seat.setIsExtraLegRoom(true);
+                    }    
+                    else{
+                        seat.setIsExtraLegRoom(false);    
+                    }     
                     seatPrice = price; // Economy class (base price)
+                    seat.setIsEconomyClass(true);
                 }
                 
                 seat.setPrice(seatPrice);

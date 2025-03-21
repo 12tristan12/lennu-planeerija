@@ -9,24 +9,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     function getFlightIdFromUrl() {
         const urlParams = new URLSearchParams(window.location.search);
         const flightId = urlParams.get('flightId');
-        console.log('Flight ID from URL:', flightId);
         return flightId;
     }
 
     async function initialize() {
         try {
             const flightId = getFlightIdFromUrl();
-            console.log('Initializing with flightId:', flightId);
-            
             if (!flightId) {
                 throw new Error('No flight ID provided');
             }
 
             const flight = await api.getFlightDetails(flightId);
-            console.log('Flight details received:', flight);
-            
             const seats = await api.getSeats(flightId);
-            console.log('Seats data received:', seats);
             
             displayFlightInfo(flight);
             generateSeats(seats);
@@ -60,7 +54,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         seatsGrid.innerHTML = '';
 
-        // Create header row
         const headerRow = document.createElement('div');
         headerRow.className = 'seat-row header';
         headerRow.innerHTML = `
@@ -71,7 +64,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
         seatsGrid.appendChild(headerRow);
 
-        // Create seat rows
         for (let i = 1; i <= numRows; i++) {
             const row = document.createElement('div');
             row.className = 'seat-row';
@@ -153,6 +145,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Start initialization
+    confirmButton.addEventListener('click', async () => {
+        if (selectedSeats.size === 0) {
+            alert('Palun vali vähemalt üks istekoht');
+            return;
+        }
+
+        const flightId = getFlightIdFromUrl();
+        const seatNumbers = Array.from(selectedSeats);
+
+        try {
+            await api.bookSeats(flightId, seatNumbers);
+            alert('Kohad broneeritud!');
+            window.location.href = '/';
+        } catch (error) {
+            console.error('Error booking seats:', error);
+            alert('Viga kohtade broneerimisel');
+        }
+    });
+
     initialize();
 });
