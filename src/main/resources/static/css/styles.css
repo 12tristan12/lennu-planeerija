@@ -148,21 +148,17 @@ button:hover {
 }
 
 .seat-row {
-    display: grid;
-    grid-template-columns: 30px repeat(3, 44px) 60px repeat(3, 44px);
-    gap: 8px;
-    justify-content: center;
+    display: flex;
     align-items: center;
-    margin-bottom: 8px;
-    position: relative;
+    margin-bottom: 10px;
+}
+
+.seat-row.header {
+    font-weight: bold;
 }
 
 .aisle {
-    width: 60px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 20px;
 }
 
 /* Add spacing between price sections */
@@ -207,31 +203,36 @@ button:hover {
     position: relative;
     width: 44px;
     height: 44px;
-    border: 1px solid #e1e1e1;
-    border-radius: 4px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
+    gap: 2px;
+}
+
+.seat-number {
     font-size: 13px;
     font-weight: 500;
 }
 
-/* Add price below the seat */
-.seat::after {
-    content: attr(data-price) "€";
+.seat-price {
+    font-size: 11px;
+    color: #666;
     position: absolute;
-    bottom: -20px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 12px;
-    color: var(--dark-gray);
-    opacity: 0.8;
+    bottom: -18px;
+    width: 100%;
+    text-align: center;
 }
 
-.seat.available:hover {
-    background-color: #f5f5f5;
-    border-color: #dadada;
+.seat.available {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    cursor: pointer;
+}
+
+.seat.occupied {
+    background-color: #ccc;
+    border: 1px solid #999;
 }
 
 .seat.selected {
@@ -306,4 +307,79 @@ button:hover {
 #flight-info h2 {
     color: var(--estonia-blue);
     margin-bottom: 15px;
+}
+
+.flight-card {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.flight-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.flight-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.flight-price {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.flight-info {
+    margin-bottom: 16px;
+}
+
+.route {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 1.1em;
+}
+
+.arrow {
+    color: #7f8c8d;
+}
+
+.times {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.select-btn {
+    width: 100%;
+    padding: 8px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.select-btn:hover {
+    background-color: #2980b9;
+}
+
+.error {
+    color: #e74c3c;
+    padding: 1rem;
+    background-color: #fde8e8;
+    border-radius: 4px;
+    margin: 1rem 0;
+}
+
+.flights-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }

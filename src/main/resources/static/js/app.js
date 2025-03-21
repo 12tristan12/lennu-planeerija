@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const flightsList = document.getElementById('flights');
+    const flightsList = document.getElementById('flights-list');
     const searchForm = document.getElementById('flight-search');
     const seatsGrid = document.getElementById('seats-grid');
     const confirmButton = document.getElementById('confirm-seats');
@@ -11,72 +11,71 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let selectedSeats = [];
 
-    // Load initial flights
+    async function loadFlights() {
+        try {
+            const flights = await api.getFlights();
+            displayFlights(flights);
+        } catch (error) {
+            console.error('Error loading flights:', error);
+        }
+    }
+
+    function displayFlights(flights) {
+        if (!flights || flights.length === 0) {
+            flightsList.innerHTML = '<p>No flights available.</p>';
+            return;
+        }
+
+        const flightsHTML = flights.map(flight => `
+            <li class="flight-card">
+                <div class="flight-header">
+                    <h3>${flight.airline}</h3>
+                    <span class="flight-price">${flight.price}€</span>
+                </div>
+                <div class="flight-info">
+                    <div class="route">
+                        <span>${flight.origin}</span>
+                        <span class="arrow">→</span>
+                        <span>${flight.destination}</span>
+                    </div>
+                    <div class="times">
+                        <div>Väljumine: ${formatDateTime(flight.departureTime)}</div>
+                        <div>Saabumine: ${formatDateTime(flight.arrivalTime)}</div>
+                    </div>
+                </div>
+                <button onclick="window.location.href='/seatsPlan.html?flightId=${flight.id}'" class="select-btn">
+                    Vali istekohad
+                </button>
+            </li>
+        `).join('');
+
+        flightsList.innerHTML = flightsHTML;
+    }
+
+    function formatDateTime(dateTimeStr) {
+        if (!dateTimeStr) return 'N/A';
+        const date = new Date(dateTimeStr);
+        return date.toLocaleString('et-EE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    // Load flights when page loads
     loadFlights();
 
     // Handle search form submission
-    searchForm.addEventListener('submit', handleSearch);
-
-    async function loadFlights() {
-        try {
-            const flights = await api.getAllFlights();
-            displayFlights(flights);
-        } catch (error) {
-            console.error('Error loading flights:', error);
-        }
-    }
-    async function handleSearch(event) {
-        event.preventDefault();
-        
-        const departure = document.getElementById('departure').value;
-        const arrival = document.getElementById('arrival').value;
-        const dateFrom = document.getElementById('dateFrom').value;
-        const classType = document.getElementById('classType').value;
-
-        try {
-            const flights = await api.getAllFlights();
-            const filteredFlights = flights.filter(flight => {
-                const matchDeparture = !departure || flight.origin.toLowerCase().includes(departure.toLowerCase());
-                const matchArrival = !arrival || flight.destination.toLowerCase().includes(arrival.toLowerCase());
-                const matchDate = !dateFrom || flight.departureTime.includes(dateFrom);
-                const matchClass = !classType || flight.classType === classType;
-                
-                return matchDeparture && matchArrival && matchDate && matchClass;
-            });
-            
-            displayFlights(filteredFlights);
-        } catch (error) {
-            console.error('Error searching flights:', error);
-        }
-    }
-
-    async function loadFlights() {
-        try {
-            const flights = await api.getAllFlights();
-            displayFlights(flights);
-        } catch (error) {
-            console.error('Error loading flights:', error);
-        }
-    }
-
-    async function handleSearch(event) {
-        event.preventDefault();
-        
+    searchForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
         const formData = new FormData(searchForm);
-        const searchData = {
-            departure: formData.get('departure'),
-            arrival: formData.get('arrival'),
-            dateFrom: formData.get('dateFrom'),
-            classType: formData.get('classType')
-        };
+        console.log('Search criteria:', Object.fromEntries(formData));
+        // TODO: Implement search functionality
+        await loadFlights(); // For now, just reload all flights
+    });
 
-        try {
-            const flights = await api.searchFlights(searchData);
-            displayFlights(flights);
-        } catch (error) {
-            console.error('Error searching flights:', error);
-        }
-    }
     function displayFlightInfo(flight) {
         flightInfo.innerHTML = `
             <h2>${flight.origin} → ${flight.destination}</h2>
@@ -84,35 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <p>Väljumine: ${flight.departureTime}</p>
         `;
     }
-    function displayFlights(flights) {
-        flightsList.innerHTML = '';
-        flights.forEach(flight => {
-            const li = document.createElement('li');
-            li.className = 'flight-item';
-            li.innerHTML = `
-                <div class="flight-header">
-                    <h3>${flight.airline}</h3>
-                    <span class="flight-price">${flight.price}€</span>
-                </div>
-                <div class="flight-details">
-                    <p><strong>From:</strong> ${flight.origin} (${flight.departureTime})</p>
-                    <p><strong>To:</strong> ${flight.destination} (${flight.arrivalTime})</p>
-                    <p><strong>Flight Number:</strong> ${flight.flightNumber}</p>
-                    <button class="select-seats-btn" data-flight-id="${flight.id}">
-                        Vali kohad
-                    </button>
-                </div>
-            `;
-            
-            // Add click event listener to the button
-            const selectSeatsBtn = li.querySelector('.select-seats-btn');
-            selectSeatsBtn.addEventListener('click', () => {
-                window.location.href = `seatsPlan.html?flightId=${flight.id}`;
-            });
-            
-            flightsList.appendChild(li);
-        });
-    }
+
     function renderSeats(seats) {
         seatsGrid.innerHTML = '';
         seats.forEach(seat => {
@@ -127,6 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
             seatsGrid.appendChild(seatElement);
         });
     }
+
     function toggleSeatSelection(seatElement, seat) {
         if (seatElement.classList.contains('selected')) {
             seatElement.classList.remove('selected');
@@ -136,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedSeats.push(seat.seatNumber);
         }
     }
+
     // Add event listener for seat selection buttons
     confirmButton.addEventListener('click', async () => {
         if (selectedSeats.length === 0) {
@@ -152,5 +125,15 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Viga kohtade broneerimisel');
         }
     });
+
+    async function loadSeats() {
+        try {
+            const seats = await api.getSeats(flightId);
+            renderSeats(seats);
+        } catch (error) {
+            console.error('Error loading seats:', error);
+        }
+    }
+
     loadSeats();
 });

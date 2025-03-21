@@ -1,41 +1,48 @@
 const API_BASE_URL = 'http://localhost:8080/api';
 
 const api = {
-    async getAllFlights() {
+    async getFlights() {
         try {
-            const response = await fetch(`${API_BASE_URL}/flights`);
+            const response = await fetch('/api/flights');
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-            return await response.json();
+            const flights = await response.json();
+            console.log('Loaded flights:', flights);
+            return flights;
         } catch (error) {
-            console.error('Error fetching flights:', error);
+            console.error('API error:', error);
             throw error;
         }
     },
 
     async getFlightDetails(flightId) {
-        const response = await fetch(`${API_BASE_URL}/flights/${flightId}`);
-        return await response.json();
+        try {
+            const response = await fetch(`/api/flights/${flightId}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const flight = await response.json();
+            console.log('Flight details:', flight);
+            return flight;
+        } catch (error) {
+            console.error('API error:', error);
+            throw error;
+        }
     },
 
     async getSeats(flightId) {
-        const response = await fetch(`${API_BASE_URL}/flights/${flightId}/seats`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch seats');
+        try {
+            const response = await fetch(`/api/flights/${flightId}/seats`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch seats');
+            }
+            const seats = await response.json();
+            console.log('Loaded seats:', seats);
+            return seats;
+        } catch (error) {
+            console.error('API error:', error);
+            throw error;
         }
-        const data = await response.json();
-        console.log('API response:', data); // Debug log
-        return data;
-    },
-    async bookSeats(flightId, seatNumbers) {
-        const response = await fetch(`${API_BASE_URL}/flights/${flightId}/seats/book`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ seatNumbers })
-        });
-        return await response.json();
     }
 };

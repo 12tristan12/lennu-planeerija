@@ -1,148 +1,158 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const seatsGrid = document.getElementById('seats-grid');
-    const confirmButton = document.getElementById('confirm-seats');
-    const flightInfo = document.getElementById('flight-info');
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    const flightId = urlParams.get('flightId');
-    console.log('Flight ID:', flightId); // Debug log
-    
-    let selectedSeats = [];
+document.addEventListener('DOMContentLoaded', async () => {
+    const seatsGrid = document.getElementById('seatsGrid');
+    const flightInfo = document.getElementById('flightInfo');
+    const selectedSeatsList = document.getElementById('selectedSeats');
+    const totalPriceElement = document.getElementById('totalPrice');
+    const confirmButton = document.getElementById('confirmSeats');
+    const selectedSeats = new Set();
 
-    // Initialize by loading flight info and seats
+    function getFlightIdFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const flightId = urlParams.get('flightId');
+        console.log('Flight ID from URL:', flightId);
+        return flightId;
+    }
+
     async function initialize() {
         try {
-            const flightDetails = await api.getFlightDetails(flightId);
-            console.log('Flight details:', flightDetails); // Debug log
-            displayFlightInfo(flightDetails);
-            await generateSeats();
+            const flightId = getFlightIdFromUrl();
+            console.log('Initializing with flightId:', flightId);
+            
+            if (!flightId) {
+                throw new Error('No flight ID provided');
+            }
+
+            const flight = await api.getFlightDetails(flightId);
+            console.log('Flight details received:', flight);
+            
+            const seats = await api.getSeats(flightId);
+            console.log('Seats data received:', seats);
+            
+            displayFlightInfo(flight);
+            generateSeats(seats);
         } catch (error) {
             console.error('Error initializing seat plan:', error);
+            seatsGrid.innerHTML = '<p class="error">Error loading seat plan: ' + error.message + '</p>';
         }
     }
 
     function displayFlightInfo(flight) {
         flightInfo.innerHTML = `
-            <h2>${flight.origin} → ${flight.destination}</h2>
-            <p>Lend: ${flight.flightNumber}</p>
-            <p>Väljumine: ${flight.departureTime}</p>
+            <div class="flight-header">
+                <h2>${flight.origin} → ${flight.destination}</h2>
+                <p class="flight-details">
+                    <span>Lend: ${flight.airline}</span>
+                    <span>Väljumine: ${formatDateTime(flight.departureTime)}</span>
+                </p>
+            </div>
         `;
     }
 
-    // Generate seat layout
-    async function generateSeats() {
-        // Split rows into left and right sections
+    function generateSeats(seatData) {
+        if (!seatData || seatData.length === 0) {
+            seatsGrid.innerHTML = '<p class="no-seats">No seats available for this flight.</p>';
+            return;
+        }
+
         const leftRows = ['A', 'B', 'C'];
         const rightRows = ['D', 'E', 'F'];
         const numRows = 20;
 
-        try {
-            const seatStatus = await api.getSeats(flightId);
-            seatsGrid.innerHTML = '';
-            
-            // Create header row
-            const headerRow = document.createElement('div');
-            headerRow.className = 'seat-row header';
-            headerRow.innerHTML = `
-                <div class="row-number"></div>
-                ${leftRows.map(letter => `<div class="seat-letter">${letter}</div>`).join('')}
-                <div class="aisle"></div>
-                ${rightRows.map(letter => `<div class="seat-letter">${letter}</div>`).join('')}
-            `;
-            seatsGrid.appendChild(headerRow);
+        seatsGrid.innerHTML = '';
 
-            // Generate seats
-            for (let i = 1; i <= numRows; i++) {
-                const row = document.createElement('div');
-                // Add class for price section separators
-                if (i === 1 || i === 6 || i === 11) {
-                    row.className = 'seat-row price-section-start';
-                } else {
-                    row.className = 'seat-row';
-                }
-                
-                const rowNum = document.createElement('div');
-                rowNum.className = 'row-number';
-                rowNum.textContent = i;
-                row.appendChild(rowNum);
+        // Create header row
+        const headerRow = document.createElement('div');
+        headerRow.className = 'seat-row header';
+        headerRow.innerHTML = `
+            <div class="row-number"></div>
+            ${leftRows.map(letter => `<div class="seat-letter">${letter}</div>`).join('')}
+            <div class="aisle"></div>
+            ${rightRows.map(letter => `<div class="seat-letter">${letter}</div>`).join('')}
+        `;
+        seatsGrid.appendChild(headerRow);
 
-                // Add left side seats
-                leftRows.forEach(letter => {
-                    addSeat(row, i, letter, seatStatus);
-                });
+        // Create seat rows
+        for (let i = 1; i <= numRows; i++) {
+            const row = document.createElement('div');
+            row.className = 'seat-row';
+            row.innerHTML = `<div class="row-number">${i}</div>`;
 
-                // Add center aisle
-                const aisle = document.createElement('div');
-                aisle.className = 'aisle';
-                row.appendChild(aisle);
+            leftRows.forEach(letter => addSeat(row, i, letter, seatData));
+            row.appendChild(document.createElement('div')).className = 'aisle';
+            rightRows.forEach(letter => addSeat(row, i, letter, seatData));
 
-                // Add right side seats
-                rightRows.forEach(letter => {
-                    addSeat(row, i, letter, seatStatus);
-                });
-
-                seatsGrid.appendChild(row);
-            }
-        } catch (error) {
-            console.error('Error generating seats:', error);
-            seatsGrid.innerHTML = '<p>Error loading seat plan. Please try again later.</p>';
+            seatsGrid.appendChild(row);
         }
     }
 
-    // Helper function to create seats
-    function addSeat(row, i, letter, seatStatus) {
-        const seat = document.createElement('div');
+    function addSeat(row, i, letter, seatData) {
         const seatNumber = `${i}${letter}`;
-        const seatInfo = seatStatus.find(s => s.seatNumber === seatNumber);
-        const isOccupied = seatInfo?.isBooked || false;
+        const seatInfo = seatData.find(s => s.seatNumber === seatNumber);
         
-        seat.className = `seat ${isOccupied ? 'occupied' : 'available'}`;
-        seat.dataset.seatNumber = seatNumber;
-        seat.dataset.price = seatInfo?.price || '49';
-        seat.textContent = seatNumber;
-        
-        if (!isOccupied) {
-            seat.addEventListener('click', () => toggleSeatSelection(seat));
-        }
-        row.appendChild(seat);
-    }
-
-    function toggleSeatSelection(seatElement) {
-        if (seatElement.classList.contains('occupied')) return;
-        
-        const seatNumber = seatElement.dataset.seatNumber;
-        if (seatElement.classList.contains('selected')) {
-            seatElement.classList.remove('selected');
-            selectedSeats = selectedSeats.filter(s => s !== seatNumber);
-        } else {
-            seatElement.classList.add('selected');
-            selectedSeats.push(seatNumber);
-        }
-        console.log('Selected seats:', selectedSeats); // Debug log
-    }
-
-    confirmButton.addEventListener('click', async () => {
-        if (selectedSeats.length === 0) {
-            alert('Palun vali vähemalt üks istekoht');
+        if (!seatInfo) {
+            console.warn(`No seat info found for seat ${seatNumber}`);
             return;
         }
 
-        try {
-            console.log('Booking seats:', selectedSeats); // Debug log
-            await api.bookSeats(flightId, selectedSeats);
-            alert('Kohad edukalt broneeritud!');
-            window.location.href = 'index.html';
-        } catch (error) {
-            console.error('Error booking seats:', error);
-            alert('Viga kohtade broneerimisel');
+        const seat = document.createElement('div');
+        seat.className = `seat ${seatInfo.isBooked ? 'occupied' : 'available'}`;
+        seat.dataset.seatNumber = seatNumber;
+        seat.dataset.price = seatInfo.price;
+
+        seat.innerHTML = `
+            <span class="seat-number">${seatNumber}</span>
+            <span class="seat-price">${seatInfo.price}€</span>
+        `;
+
+        if (!seatInfo.isBooked) {
+            seat.addEventListener('click', () => toggleSeatSelection(seat));
         }
-    });
+
+        row.appendChild(seat);
+    }
+
+    function toggleSeatSelection(seat) {
+        const seatNumber = seat.dataset.seatNumber;
+        const price = parseFloat(seat.dataset.price);
+
+        if (selectedSeats.has(seatNumber)) {
+            selectedSeats.delete(seatNumber);
+            seat.classList.remove('selected');
+        } else {
+            selectedSeats.add(seatNumber);
+            seat.classList.add('selected');
+        }
+
+        updateSelectedSeatsDisplay();
+    }
+
+    function updateSelectedSeatsDisplay() {
+        const seats = Array.from(selectedSeats);
+        let totalPrice = 0;
+
+        selectedSeatsList.innerHTML = seats.map(seatNumber => {
+            const seat = document.querySelector(`[data-seat-number="${seatNumber}"]`);
+            const price = parseFloat(seat.dataset.price);
+            totalPrice += price;
+            return `<li>${seatNumber} - ${price}€</li>`;
+        }).join('');
+
+        totalPriceElement.textContent = totalPrice.toFixed(2);
+        confirmButton.disabled = seats.length === 0;
+    }
+
+    function formatDateTime(dateTimeStr) {
+        if (!dateTimeStr) return 'N/A';
+        const date = new Date(dateTimeStr);
+        return date.toLocaleString('et-EE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
 
     // Start initialization
-    if (flightId) {
-        initialize();
-    } else {
-        seatsGrid.innerHTML = '<p>Error: No flight ID provided</p>';
-        console.error('No flight ID provided'); // Debug log
-    }
+    initialize();
 });

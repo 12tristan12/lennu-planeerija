@@ -25,16 +25,15 @@ public class FlightController {
     private final FlightService flightService;
     private final SeatRepository seatRepository;
 
- 
     public FlightController(FlightService flightService, SeatRepository seatRepository) {
         this.flightService = flightService;
-        this.seatRepository = seatRepository; 
+        this.seatRepository = seatRepository;
     }
 
-    // ✅ Get all flights
     @GetMapping
-    public List<Flight> getAllFlights() {
-        return flightService.getAllFlights();
+    public ResponseEntity<List<Flight>> getAllFlights() {
+        List<Flight> flights = flightService.getAllFlights();
+        return ResponseEntity.ok(flights);
     }
 
     @GetMapping("/test")
@@ -42,46 +41,70 @@ public class FlightController {
         return "Töötab";
     }
 
-    // ✅ Add a new flight
     @PostMapping
-    public Flight addFlight(@RequestBody Flight flight) {
-        return flightService.addFlight(flight);
+    public ResponseEntity<?> addFlight(@RequestBody Flight flight) {
+        try {
+            if (flight.getPrice() == null) {
+                return ResponseEntity
+                    .badRequest()
+                    .body("Price is required and must be a valid number");
+            }
+
+            Flight savedFlight = flightService.addFlight(flight);
+            return ResponseEntity.ok(savedFlight);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity
+                .badRequest()
+                .body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Flight> getFlightById(@PathVariable Long id) {
+        try {
+            Flight flight = flightService.getFlightById(id);
+            return ResponseEntity.ok(flight);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping("/{flightId}/seats")
-        public ResponseEntity<List<Seats>> getSeatsByFlight(@PathVariable Long flightId) {
-        List<Seats> seats = seatRepository.findByFlightId(flightId); // Kasuta õiget meetodit
-        return ResponseEntity.ok(seats);
-    }
-    @PostMapping("/{flightId}/seats")
-    public ResponseEntity<?> bookSeat( @PathVariable Long flightId, @RequestParam String seatNumber) {
-    Optional<Seats> seatOpt = seatRepository.findBySeatNumberAndFlightId(seatNumber, flightId);
-    if (seatOpt.isEmpty()) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Koht ei leitud");
-    }
-
-    Seats seat = seatOpt.get();
-    if (seat.getIsBooked()) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body("Koht on juba broneeritud");
-    }
-    seat.setIsBooked(true);
-    seatRepository.save(seat);
-    return ResponseEntity.ok("Koht broneeritud: " + seatNumber);
-    }
-    
-    @GetMapping("/flights/{flightId}/seats")
-    public ResponseEntity<List<Seats>> getFlightSeats(@PathVariable Long flightId) {
+    public ResponseEntity<List<Seats>> getSeatsByFlight(@PathVariable Long flightId) {
         List<Seats> seats = flightService.getSeatsForFlight(flightId);
         return ResponseEntity.ok(seats);
     }
 
+    @PostMapping("/{flightId}/seats")
+    public ResponseEntity<?> bookSeat(@PathVariable Long flightId, @RequestParam String seatNumber) {
+        Optional<Seats> seatOpt = seatRepository.findBySeatNumberAndFlightId(seatNumber, flightId);
+        if (seatOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Koht ei leitud");
+        }
+
+        Seats seat = seatOpt.get();
+        if (seat.getIsBooked()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Koht on juba broneeritud");
+        }
+        seat.setIsBooked(true);
+        seatRepository.save(seat);
+        return ResponseEntity.ok("Koht broneeritud: " + seatNumber);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Flight>> searchFlights(
+        @RequestParam(required = false) String origin,
+        @RequestParam(required = false) String destination,
+        @RequestParam(required = false) String departureDate,
+        @RequestParam(required = false) String classType) {
+        
+        List<Flight> filteredFlights = flightService.searchFlights(origin, destination, departureDate, classType);
+        return ResponseEntity.ok(filteredFlights);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFlight(@PathVariable Long id) {
-        try {
-            flightService.deleteFlight(id);
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+        flightService.deleteFlight(id);
+        return ResponseEntity.noContent().build();
     }
 }
