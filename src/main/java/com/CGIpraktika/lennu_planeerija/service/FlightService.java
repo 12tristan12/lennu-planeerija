@@ -78,8 +78,7 @@ public class FlightService {
 
     public void deleteFlight(Long id) {
         // First find the flight to ensure it exists
-        Flight flight = flightRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Flight not found with id: " + id));
+        Flight flight = flightRepository.findById(id).orElseThrow(() -> new RuntimeException("Flight not found with id: " + id));
             
         // Delete associated seats first
         List<Seats> seats = seatRepository.findByFlightId(id);

@@ -22,17 +22,15 @@
                     <input type="text" id="arrival" name="arrival">
                 </div>
                 <div class="form-group">
-                    <label for="dateFrom">Väljumiskuupäev:</label>
-                    <input type="date" id="dateFrom" name="dateFrom">
+                    <label>Kuupäevad:</label>
+                    <div class="date-group">
+                        <input type="date" id="dateFrom" name="dateFrom" placeholder="Väljumine">
+                        <input type="date" id="dateTo" name="dateTo" placeholder="Saabumine">
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="classType">Klass:</label>
-                    <select id="classType" name="classType">
-                        <option value="">Kõik klassid</option>
-                        <option value="Economy">Economy</option>
-                        <option value="Business">Business</option>
-                        <option value="First">First</option>
-                    </select>
+                    <label for="numberPas">Mitu:</label>
+                    <input type="number" id="numberPas" name="numberPas" min="1" max="150">	
                 </div>
                 <div class="form-group">
                     <button type="submit" class="search-btn">Otsi lende</button>

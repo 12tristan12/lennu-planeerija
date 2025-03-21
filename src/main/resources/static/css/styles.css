@@ -79,6 +79,41 @@ input:focus, select:focus {
     outline: none;
 }
 
+input[type="number"] {
+    flex: 0.15; /* Makes the number input 4x shorter than other inputs */
+    min-width: 80px; /* Ensures minimum readable width */
+    text-align: center;
+}
+
+.date-group {
+    display: flex;
+    gap: 20px;  /* Adds space between date inputs */
+    flex: 1;
+}
+
+input[type="date"] {
+    appearance: none;
+    flex: 1;
+    text-align: center;
+    min-width: 140px;
+    padding: 12px 15px;
+    border: 2px solid #e1e1e1;
+    border-radius: 10px;
+    font-size: 0.95em;
+    transition: all 0.3s ease;
+    background-color: var(--light-gray);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
 .search-btn {
     background-color: var(--estonia-blue);
     color: var(--estonia-white);
@@ -416,7 +451,7 @@ input:focus, select:focus {
 .total-price {
     font-size: 1.2em;
     font-weight: 600;
-    color: var(--success-green);
+    color: var (--success-green);
     text-align: right;
     padding-top: 20px;
     border-top: 1px solid var(--light-gray);
