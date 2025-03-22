@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded - initializing app...');
+    
     const flightsList = document.getElementById('flights-list');
     const searchForm = document.getElementById('flight-search');
     const seatsGrid = document.getElementById('seats-grid');
@@ -6,15 +8,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmButton = document.getElementById('confirm-seats');
     const flightInfo = document.getElementById('flight-info');
     
+    // Log found elements to verify DOM queries
+    console.log('Found elements:', {
+        flightsList: !!flightsList,
+        searchForm: !!searchForm,
+        seatsGrid: !!seatsGrid,
+        preferencesForm: !!preferencesForm
+    });
+
     // Get flight ID from URL
     const urlParams = new URLSearchParams(window.location.search);
     const flightId = urlParams.get('flightId');
-    
+    console.log('Current page info:', {
+        path: window.location.pathname,
+        flightId: flightId,
+        params: Object.fromEntries(urlParams)
+    });
+
     let selectedSeats = [];
 
     async function loadFlights() {
+        console.log('Loading flights...'); // Debug log
         try {
             const flights = await api.getFlights();
+            console.log('Flights received:', flights); // Debug log
             displayFlights(flights);
         } catch (error) {
             console.error('Error loading flights:', error);
@@ -22,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Modify the select seats button click handler in displayFlights function
     function displayFlights(flights) {
         if (!flights || flights.length === 0) {
             flightsList.innerHTML = '<p>Ühtegi lendu ei leitud.</p>';
@@ -45,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div>Saabumine: ${formatDateTime(flight.arrivalTime)}</div>
                     </div>
                 </div>
-                <button onclick="window.location.href='/seatsPlan.html?flightId=${flight.id}'" class="select-btn">
+                <button onclick="window.location.href='/seatsPlan.html?flightId=${flight.id}&passengers=${document.getElementById('passengers').value || 1}'" class="select-btn">
                     Vali istekohad
                 </button>
             </li>
@@ -70,33 +88,76 @@ document.addEventListener('DOMContentLoaded', () => {
     loadFlights();
 
     // Handle search form submission
-    searchForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); // Prevent form from submitting normally
-        
-        const departure = document.getElementById('departure').value;
-        const arrival = document.getElementById('arrival').value;
-        const dateFrom = document.getElementById('dateFrom').value;
-        const classType = document.getElementById('classType').value;
+    if (searchForm) {
+        searchForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('Search form submitted'); // Debug log
+            
+            const departure = document.getElementById('departure').value;
+            const arrival = document.getElementById('arrival').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const classType = document.getElementById('classType').value;
+            const passengers = document.getElementById('passengers').value || 1;
 
-        // Build search parameters
-        const params = new URLSearchParams();
-        if (departure) params.append('origin', departure);
-        if (arrival) params.append('destination', arrival);
-        if (dateFrom) params.append('departureDate', dateFrom);
-        if (classType) params.append('classType', classType);
+            console.log('Search parameters:', { // Debug log
+                departure,
+                arrival,
+                dateFrom,
+                classType,
+                passengers
+            });
 
-        try {
-            const response = await fetch(`/api/flights/search?${params}`);
-            if (!response.ok) {
-                throw new Error('Search failed');
+            if (!departure || !arrival || !dateFrom) {
+                alert('Palun täitke kõik kohustuslikud väljad');
+                return;
             }
-            const flights = await response.json();
-            displayFlights(flights);
-        } catch (error) {
-            console.error('Error searching flights:', error);
-            flightsList.innerHTML = '<p class="error">Lendude otsimine ebaõnnestus. Palun proovige uuesti.</p>';
-        }
-    });
+
+            try {
+                // First, get all flights
+                const flights = await api.getFlights();
+                console.log('All flights:', flights); // Debug log
+
+                // Filter flights based on search criteria
+                const filteredFlights = flights.filter(flight => 
+                    flight.origin.toLowerCase() === departure.toLowerCase() &&
+                    flight.destination.toLowerCase() === arrival.toLowerCase() &&
+                    flight.departureTime.startsWith(dateFrom)
+                );
+                console.log('Filtered flights:', filteredFlights); // Debug log
+
+                // Check seat availability
+                const availableFlights = await Promise.all(
+                    filteredFlights.map(async (flight) => {
+                        const seats = await api.getSeats(flight.id);
+                        const availableSeats = seats.filter(seat => {
+                            if (!seat.isBooked) {
+                                switch(classType) {
+                                    case 'economy': return seat.isEconomyClass;
+                                    case 'business': return seat.isBusinessClass;
+                                    case 'first': return seat.isFirstClass;
+                                    default: return true;
+                                }
+                            }
+                            return false;
+                        });
+
+                        return availableSeats.length >= passengers ? {
+                            ...flight,
+                            availableSeats: availableSeats.length
+                        } : null;
+                    })
+                );
+
+                const finalFlights = availableFlights.filter(flight => flight !== null);
+                console.log('Final available flights:', finalFlights); // Debug log
+
+                displayFlights(finalFlights);
+            } catch (error) {
+                console.error('Error searching flights:', error);
+                flightsList.innerHTML = '<p class="error">Lendude otsimine ebaõnnestus. Palun proovige uuesti.</p>';
+            };
+        });
+    }
 
     function displayFlightInfo(flight) {
         flightInfo.innerHTML = `
@@ -106,26 +167,48 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    function renderSeats(seats) {
+    function renderSeats(seats, recommendedSeatNumbers = []) {
+        console.log('Rendering seats with recommendations:', recommendedSeatNumbers);
         seatsGrid.innerHTML = '';
+        
+        // Group seats by row
+        const seatRows = {};
         seats.forEach(seat => {
-            const seatElement = document.createElement('div');
-            seatElement.className = `seat ${seat.isBooked ? 'occupied' : 'available'}`;
-            seatElement.textContent = seat.seatNumber;
-            seatElement.dataset.seatNumber = seat.seatNumber;
-            
-            if (!seat.isBooked) {
-                seatElement.addEventListener('click', () => toggleSeatSelection(seatElement, seat));
+            const row = seat.seatNumber.replace(/[A-Z]/g, '');
+            if (!seatRows[row]) {
+                seatRows[row] = [];
             }
+            seatRows[row].push(seat);
+        });
+        
+        // Render seats row by row
+        Object.keys(seatRows).sort((a, b) => a - b).forEach(row => {
+            const rowElement = document.createElement('div');
+            rowElement.className = 'seat-row';
             
-            // Update data attributes to match Java names
-            seatElement.dataset.isFirstClass = seat.isFirstClass;
-            seatElement.dataset.isBusinessClass = seat.isBusinessClass;
-            seatElement.dataset.isEconomyClass = seat.isEconomyClass;
-            seatElement.dataset.isWindowSeat = seat.isWindowSeat;
-            seatElement.dataset.isExtraLegRoom = seat.isExtraLegRoom;
+            seatRows[row].forEach(seat => {
+                const seatElement = document.createElement('div');
+                const isRecommended = recommendedSeatNumbers.includes(seat.seatNumber);
+                
+                seatElement.className = `seat ${seat.isBooked ? 'occupied' : 'available'} ${isRecommended ? 'recommended' : ''}`;
+                
+                if (isRecommended) {
+                    const index = recommendedSeatNumbers.indexOf(seat.seatNumber) + 1;
+                    seatElement.setAttribute('title', `Soovitatud istekoht ${index}/${recommendedSeatNumbers.length}`);
+                    console.log(`Marking seat ${seat.seatNumber} as recommended (${index}/${recommendedSeatNumbers.length})`);
+                }
+                
+                seatElement.textContent = seat.seatNumber;
+                seatElement.dataset.seatNumber = seat.seatNumber;
+                
+                if (!seat.isBooked) {
+                    seatElement.addEventListener('click', () => toggleSeatSelection(seatElement, seat));
+                }
+                
+                rowElement.appendChild(seatElement);
+            });
             
-            seatsGrid.appendChild(seatElement);
+            seatsGrid.appendChild(rowElement);
         });
     }
 
@@ -140,37 +223,86 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Add event listener for seat selection buttons
-    confirmButton.addEventListener('click', async () => {
-        if (selectedSeats.length === 0) {
-            alert('Palun vali vähemalt üks istekoht');
-            return;
-        }
+    if (confirmButton) {
+        confirmButton.addEventListener('click', async () => {
+            if (selectedSeats.length === 0) {
+                alert('Palun vali vähemalt üks istekoht');
+                return;
+            }
 
-        try {
-            await api.bookSeats(flightId, selectedSeats);
-            alert('Kohad broneeritud!');
-            window.location.href = '/';
-        } catch (error) {
-            console.error('Error booking seats:', error);
-            alert('Viga kohtade broneerimisel');
-        }
-    });
+            try {
+                await api.bookSeats(flightId, selectedSeats);
+                alert('Kohad broneeritud!');
+                window.location.href = '/';
+            } catch (error) {
+                console.error('Error booking seats:', error);
+                alert('Viga kohtade broneerimisel');
+            }
+        });
+    }
 
     async function loadSeats() {
+        console.log('loadSeats function starting...');
         try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const passengers = parseInt(urlParams.get('passengers')) || 1;
+            console.log('URL parameters:', { flightId, passengers });
+            
+            // Get all seats
             const seats = await api.getSeats(flightId);
-            renderSeats(seats);
+            console.log('All seats loaded:', seats);
+            
+            // Get recommendations
+            const recommendedSeats = await api.getRecommendedSeats(flightId, {
+                passengers: passengers,
+                windowSeat: false,
+                extraLegroom: false,
+                excludedSeats: []
+            });
+            console.log('Recommended seats:', recommendedSeats);
+
+            // Extract seat numbers from recommended seats
+            const recommendedSeatNumbers = recommendedSeats.map(seat => seat.seatNumber);
+            console.log('Recommended seat numbers:', recommendedSeatNumbers);
+
+            if (seatsGrid) {
+                seatsGrid.style.display = 'block';
+                renderSeats(seats, recommendedSeatNumbers); // Pass seat numbers, not objects
+            }
         } catch (error) {
-            console.error('Error loading seats:', error);
+            console.error('Error in loadSeats:', error);
         }
     }
 
-    loadSeats();
-    
+    async function filterAndDisplaySeats(preferences, flightId) {
+        try {
+            const seats = await api.getSeats(flightId);
+            const numberOfPassengers = parseInt(document.getElementById('passengers').value) || 1;
+            
+            const recommendedSeats = await api.getRecommendedSeats(flightId, {
+                passengers: numberOfPassengers,
+                windowSeat: preferences.windowSeat,
+                extraLegroom: preferences.extraLegroom,
+                excludedSeats: []
+            });
+            
+            console.log('Filtered recommended seats:', recommendedSeats);
+            renderSeats(seats, recommendedSeats);
+        } catch (error) {
+            console.error('Error filtering seats:', error);
+        }
+    }
+
+    // Initialize seats only if we're on the seats page
+    if (window.location.pathname.includes('seatsPlan.html') && flightId) {
+        console.log('Initializing seats page with flightId:', flightId);
+        loadSeats();
+    }
+        
     window.showSeatPreferencesModal = function(flightId) {
         const modal = document.getElementById('seat-preferences-modal');
         if (!modal) return;
-        
+           
         modal.style.display = "block";
         modal.dataset.flightId = flightId;
 
@@ -188,72 +320,11 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     };
 
-    async function filterAndDisplaySeats(preferences, flightId) {
-        try {
-            const seats = await api.getSeats(flightId);
-            const filteredSeats = seats.filter(seat => {
-                // Match the Java class property names
-                if (preferences.seatClass === 'economy' && !seat.isEconomyClass) {
-                    return false;
-                }
-                if (preferences.seatClass === 'business' && !seat.isBusinessClass) {
-                    return false;
-                }
-                if (preferences.seatClass === 'first' && !seat.isFirstClass) {
-                    return false;
-                }
-                if (preferences.windowSeat && !seat.isWindowSeat) {
-                    return false;
-                }
-                if (preferences.extraLegroom && !seat.isExtraLegRoom) {
-                    return false;
-                }
-                return !seat.isBooked; // Use isBooked instead of status
-            });
-
-            // Sort seats by preference matching
-            const sortedSeats = filteredSeats.sort((a, b) => {
-                let scoreA = 0;
-                let scoreB = 0;
-
-                if (preferences.windowSeat) {
-                    scoreA += a.isWindowSeat ? 1 : 0;
-                    scoreB += b.isWindowSeat ? 1 : 0;
-                }
-                if (preferences.extraLegroom && preferences.seatClass === 'economy') {
-                    scoreA += a.isExtraLegRoom ? 1 : 0;
-                    scoreB += b.isExtraLegRoom ? 1 : 0;
-                }
-
-                return scoreB - scoreA;
-            });
-
-            renderSeats(sortedSeats);
-            
-            // Highlight recommended seats
-            if (sortedSeats.length > 0) {
-                highlightRecommendedSeats(sortedSeats.slice(0, 3)); // Highlight top 3 recommendations
-            }
-        } catch (error) {
-            console.error('Error filtering seats:', error);
-        }
-    }
-
-    function highlightRecommendedSeats(recommendedSeats) {
-        recommendedSeats.forEach((seat, index) => {
-            const seatElement = document.querySelector(`[data-seat-number="${seat.seatNumber}"]`);
-            if (seatElement) {
-                seatElement.classList.add('recommended');
-                seatElement.setAttribute('title', `Soovitatud istekoht #${index + 1}`);
-            }
-        });
-    }
-
     // Update seat preferences form handler
     if (preferencesForm) {
         preferencesForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+                        
             const preferences = {
                 seatClass: document.getElementById('seatClass').value,
                 extraLegroom: document.getElementById('extraLegroom').checked,
@@ -276,4 +347,9 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.style.display = "none";
         }
     };
+
+    // Initial load of flights
+    if (flightsList && !flightId) {
+        loadFlights();
+    }
 });

@@ -63,7 +63,7 @@ public class Seats {
     public boolean getIsBooked(){
         return isBooked;
     }
-    public Flight geFlight(){
+    public Flight getFlight(){
         return flight;
     }
     public Long getId(){

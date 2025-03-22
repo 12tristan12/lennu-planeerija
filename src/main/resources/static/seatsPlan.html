@@ -9,33 +9,15 @@
 <body>
     <div class="container">
         <h1>Vali istekohad</h1>
-        <div id="flightInfo" class="flight-info"></div>
-        <div id="seatsGrid" class="seats-grid"></div>
-        <div class="seat-legend">
-            <div class="seat-item">
-                <div class="seat available"></div>
-                <span>Vaba</span>
-            </div>
-            <div class="seat-item">
-                <div class="seat occupied"></div>
-                <span>Broneeritud</span>
-            </div>
-            <div class="seat-item">
-                <div class="seat selected"></div>
-                <span>Valitud</span>
-            </div>
-        </div>
-        <div class="selected-seats-info">
-            <h3>Valitud kohad:</h3>
-            <ul id="selectedSeats"></ul>
-            <div class="total-price">
-                Kokku: <span id="totalPrice">0</span>€
-            </div>
-            <button id="confirmSeats" class="confirm-btn">Kinnita valik</button>
-        </div>
+        <div id="seats-grid" class="seats-grid"></div>
     </div>
-    <!-- Lisa skriptid lehe lõppu -->
+
+    <!-- Add these script tags at the end of body -->
+    <script>
+        // Add immediate console log to verify script loading
+        console.log('Page loaded, scripts starting...');
+    </script>
     <script src="js/api.js"></script>
-    <script src="js/seats.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>

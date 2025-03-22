@@ -1,5 +1,6 @@
 package com.CGIpraktika.lennu_planeerija.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -100,6 +101,38 @@ public class FlightController {
         
         List<Flight> filteredFlights = flightService.searchFlights(origin, destination, departureDate, classType);
         return ResponseEntity.ok(filteredFlights);
+    }
+
+    @GetMapping("/{flightId}/recommended-seats")
+    public ResponseEntity<List<Seats>> getRecommendedSeats(
+            @PathVariable Long flightId,
+            @RequestParam(defaultValue = "1") int passengerCount,
+            @RequestParam(defaultValue = "false") boolean windowSeat,
+            @RequestParam(defaultValue = "false") boolean extraLegroom,
+            @RequestParam(required = false) List<String> excludedSeats) {
+        
+        System.out.println("Received seat recommendation request:");
+        System.out.println("- Flight ID: " + flightId);
+        System.out.println("- Passenger Count: " + passengerCount);
+        System.out.println("- Window Seat: " + windowSeat);
+        System.out.println("- Extra Legroom: " + extraLegroom);
+        
+        try {
+            FlightService.SeatPreferences preferences = new FlightService.SeatPreferences(
+                passengerCount,
+                excludedSeats != null ? excludedSeats : new ArrayList<>(),
+                windowSeat,
+                extraLegroom
+            );
+            
+            List<Seats> recommendedSeats = flightService.recommendSeats(flightId, preferences);
+            System.out.println("Found " + recommendedSeats.size() + " recommended seats");
+            return ResponseEntity.ok(recommendedSeats);
+        } catch (Exception e) {
+            System.err.println("Error getting seat recommendations: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @DeleteMapping("/{id}")
