@@ -23,6 +23,11 @@ Paigaldamine ja käivitamine
 Installeeritud Java 17+
 Installeeritud Maven
 Git (valikuline, lähtekoodi kloonimiseks)
+
+### Käivitamine
+```
+mvn spring-boot:run
+```
 ### Lähtekoodi hankimine
 ```
 git clone https://github.com/12tristan12/lennu-planeerija.git
