@@ -22,7 +22,7 @@ const api = {
             throw error;
         }
     },
-
+    
     async getFlightDetails(flightId) {
         try {
             const response = await fetch(`${API_BASE_URL}/flights/${flightId}`);
@@ -35,7 +35,7 @@ const api = {
             throw error;
         }
     },
-
+    
     async getSeats(flightId) {
         try {
             const response = await fetch(`${API_BASE_URL}/flights/${flightId}/seats`);
@@ -55,7 +55,7 @@ const api = {
             throw error;
         }
     },
-
+    
     async bookSeats(flightId, seatNumbers) {
         try {
             const response = await fetch(`${API_BASE_URL}/flights/${flightId}/book`, {
@@ -72,30 +72,88 @@ const api = {
             throw error;
         }
     },
-
-    async getRecommendedSeats(flightId, params) {
+    
+    // Kontrolli getRecommendedSeats funktsiooni
+    async getRecommendedSeats(flightId, preferences) {
+        const { passengers, windowSeat, extraLegroom, seatClass, excludedSeats } = preferences;
+        
+        // Lisame rohkem logimist
+        console.log("API call getRecommendedSeats with clear details:", {
+            flightId,
+            passengerCount: passengers,
+            windowSeatRequested: windowSeat, // === true? -> " + (windowSeat === true),
+            extraLegroomRequested: extraLegroom, // === true? -> " + (extraLegroom === true),
+            seatClass
+        });
+        
         try {
-            console.log('Requesting recommended seats with params:', params);
+            const params = new URLSearchParams();
+            params.append('passengerCount', passengers);
             
-            const queryParams = new URLSearchParams({
-                passengerCount: params.passengers.toString(),
-                windowSeat: params.windowSeat.toString(),
-                extraLegroom: params.extraLegroom.toString()
+            // Kasutame selgelt true/false väärtuseid, mitte objekte
+            params.append('windowSeat', Boolean(windowSeat).toString());
+            params.append('extraLegroom', Boolean(extraLegroom).toString());
+            params.append('seatClass', seatClass || 'ECONOMY');
+            
+            console.log("Request parameters:", {
+                windowSeat: Boolean(windowSeat).toString(),
+                extraLegroom: Boolean(extraLegroom).toString()
             });
             
-            const url = `${API_BASE_URL}/flights/${flightId}/recommended-seats?${queryParams}`;
-            console.log('Requesting URL:', url);
-            
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`Failed to get recommendations: ${response.status}`);
+            if (excludedSeats && excludedSeats.length > 0) {
+                excludedSeats.forEach(seat => params.append('excludedSeats', seat));
             }
             
-            const data = await response.json();
-            console.log('Received recommended seats:', data);
-            return data;
+            const url = `/api/flights/${flightId}/recommended-seats?${params.toString()}`;
+            console.log("Full API URL:", url);
+            
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+            }
+            
+            const result = await response.json();
+            console.log(`API returned ${result.length} seats, with window seats: ${result.filter(s => s.isWindowSeat).length}`);
+            return result;
         } catch (error) {
-            console.error('Error getting recommended seats:', error);
+            console.error("Error in getRecommendedSeats:", error);
+            throw error;
+        }
+    },
+    
+    // Add method to update a single seat
+    async updateSeat(flightId, seatId, seatData) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/flights/${flightId}/seats/${seatId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(seatData)
+            });
+            
+            if (!response.ok) throw new Error('Failed to update seat');
+            return await response.json();
+        } catch (error) {
+            console.error('API error updating seat:', error);
+            throw error;
+        }
+    },
+    
+    // Add method to update seats by row
+    async updateSeatsByRow(flightId, rowNumber, classData) {
+        try {
+            const queryParams = new URLSearchParams(classData);
+            const response = await fetch(
+                `${API_BASE_URL}/flights/${flightId}/seats/row/${rowNumber}?${queryParams}`, 
+                { method: 'PUT' }
+            );
+            
+            if (!response.ok) throw new Error('Failed to update seats');
+            return await response.text();
+        } catch (error) {
+            console.error('API error updating seats by row:', error);
             throw error;
         }
     }

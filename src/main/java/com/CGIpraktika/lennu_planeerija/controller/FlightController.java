@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -92,6 +93,127 @@ public class FlightController {
         return ResponseEntity.ok("Koht broneeritud: " + seatNumber);
     }
 
+    @PutMapping("/{flightId}/seats/{seatId}")
+    public ResponseEntity<?> updateSeat(
+            @PathVariable Long flightId,
+            @PathVariable Long seatId,
+            @RequestBody Seats updatedSeat) {
+        try {
+            Optional<Seats> seatOpt = seatRepository.findById(seatId);
+            if (seatOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Koht ei leitud");
+            }
+
+            Seats seat = seatOpt.get();
+            
+            // Verify that the seat belongs to the specified flight
+            if (!seat.getFlight().getId().equals(flightId)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Koht ei kuulu määratud lennule");
+            }
+            
+            // Update seat class properties
+            seat.setIsFirstClass(updatedSeat.getIsFirstClass());
+            seat.setIsBusinessClass(updatedSeat.getIsBusinessClass());
+            seat.setIsEconomyClass(updatedSeat.getIsEconomyClass());
+            
+            // Update other properties if needed
+            seat.setIsWindowSeat(updatedSeat.getIsWindowSeat());
+            seat.setIsExtraLegRoom(updatedSeat.getIsExtraLegRoom());
+            if (updatedSeat.getPrice() != null) {
+                seat.setPrice(updatedSeat.getPrice());
+            }
+            
+            // Save updated seat
+            Seats savedSeat = seatRepository.save(seat);
+            return ResponseEntity.ok(savedSeat);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Viga koha uuendamisel: " + e.getMessage());
+        }
+    }
+    
+    // Batch update seats by row
+    @PutMapping("/{flightId}/seats/row/{rowNumber}")
+    public ResponseEntity<?> updateSeatsByRow(
+            @PathVariable Long flightId,
+            @PathVariable int rowNumber,
+            @RequestParam(required = false) Boolean isFirstClass,
+            @RequestParam(required = false) Boolean isBusinessClass,
+            @RequestParam(required = false) Boolean isEconomyClass,
+            @RequestParam(required = false) Boolean isExtraLegRoom) {
+        try {
+            // Get all seats for the flight
+            List<Seats> flightSeats = flightService.getSeatsForFlight(flightId);
+            List<Seats> updatedSeats = new ArrayList<>();
+            
+            // Filter seats by row number
+            for (Seats seat : flightSeats) {
+                String seatNumber = seat.getSeatNumber();
+                String rowPart = seatNumber.replaceAll("[A-Za-z]", "");
+                
+                if (Integer.parseInt(rowPart) == rowNumber) {
+                    // Update class properties if provided
+                    if (isFirstClass != null) {
+                        seat.setIsFirstClass(isFirstClass);
+                        // If setting to first class, set others to false
+                        if (isFirstClass) {
+                            seat.setIsBusinessClass(false);
+                            seat.setIsEconomyClass(false);
+                        }
+                    }
+                    
+                    if (isBusinessClass != null) {
+                        seat.setIsBusinessClass(isBusinessClass);
+                        // If setting to business class, set others to false
+                        if (isBusinessClass) {
+                            seat.setIsFirstClass(false);
+                            seat.setIsEconomyClass(false);
+                        }
+                    }
+                    
+                    if (isEconomyClass != null) {
+                        seat.setIsEconomyClass(isEconomyClass);
+                        // If setting to economy class, set others to false
+                        if (isEconomyClass) {
+                            seat.setIsFirstClass(false);
+                            seat.setIsBusinessClass(false);
+                        }
+                    }
+                    
+                    // Update extra legroom if provided
+                    if (isExtraLegRoom != null) {
+                        seat.setIsExtraLegRoom(isExtraLegRoom);
+                    }
+                    
+                    // Recalculate price based on updated class
+                    Double basePrice = seat.getFlight().getPrice();
+                    if (seat.getIsFirstClass()) {
+                        seat.setPrice(basePrice + 40.0);
+                    } else if (seat.getIsBusinessClass()) {
+                        seat.setPrice(basePrice + 20.0);
+                    } else {
+                        seat.setPrice(basePrice);
+                    }
+                    
+                    updatedSeats.add(seat);
+                }
+            }
+            
+            if (updatedSeats.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Ühtegi kohta reas " + rowNumber + " ei leitud");
+            }
+            
+            // Save all updated seats
+            seatRepository.saveAll(updatedSeats);
+            return ResponseEntity.ok("Uuendatud " + updatedSeats.size() + " kohta reas " + rowNumber);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Viga kohtade uuendamisel: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/search")
     public ResponseEntity<List<Flight>> searchFlights(
         @RequestParam(required = false) String origin,
@@ -109,24 +231,49 @@ public class FlightController {
             @RequestParam(defaultValue = "1") int passengerCount,
             @RequestParam(defaultValue = "false") boolean windowSeat,
             @RequestParam(defaultValue = "false") boolean extraLegroom,
+            @RequestParam(defaultValue = "ECONOMY") String seatClass,
             @RequestParam(required = false) List<String> excludedSeats) {
         
-        System.out.println("Received seat recommendation request:");
-        System.out.println("- Flight ID: " + flightId);
-        System.out.println("- Passenger Count: " + passengerCount);
-        System.out.println("- Window Seat: " + windowSeat);
-        System.out.println("- Extra Legroom: " + extraLegroom);
-        
         try {
+            List<String> excludedSeatsList = excludedSeats != null ? excludedSeats : new ArrayList<>();
+            
+            // Debug info
+            System.out.println("\n=== SEAT RECOMMENDATION REQUEST ===");
+            System.out.println("- Flight ID: " + flightId);
+            System.out.println("- Passengers: " + passengerCount);
+            System.out.println("- Window Seat REQUESTED: " + windowSeat + " (boolean)");
+            System.out.println("- Extra Legroom REQUESTED: " + extraLegroom + " (boolean)");
+            System.out.println("- Raw Seat Class: " + seatClass);
+            
+            // Normalize seat class to uppercase
+            String normalizedSeatClass = seatClass.toUpperCase().trim();
+            System.out.println("- Normalized Seat Class: " + normalizedSeatClass);
+            
+            // Set only one class type to true based on seatClass parameter
+            boolean isFirstClass = normalizedSeatClass.equals("FIRST");
+            boolean isBusinessClass = normalizedSeatClass.equals("BUSINESS");
+            boolean isEconomyClass = normalizedSeatClass.equals("ECONOMY") || 
+                                  (!isFirstClass && !isBusinessClass); // Default
+            
+            System.out.println("Class booleans: First=" + isFirstClass + 
+                             ", Business=" + isBusinessClass + 
+                             ", Economy=" + isEconomyClass);
+            
             FlightService.SeatPreferences preferences = new FlightService.SeatPreferences(
                 passengerCount,
-                excludedSeats != null ? excludedSeats : new ArrayList<>(),
-                windowSeat,
-                extraLegroom
+                excludedSeatsList,
+                windowSeat,  // Need on nüüd selgelt boolean väärtused, mitte String
+                extraLegroom, // Need on nüüd selgelt boolean väärtused, mitte String
+                isFirstClass,
+                isBusinessClass,
+                isEconomyClass
             );
             
             List<Seats> recommendedSeats = flightService.recommendSeats(flightId, preferences);
             System.out.println("Found " + recommendedSeats.size() + " recommended seats");
+            System.out.println("Window seats: " + recommendedSeats.stream().filter(Seats::getIsWindowSeat).count());
+            System.out.println("====================================\n");
+            
             return ResponseEntity.ok(recommendedSeats);
         } catch (Exception e) {
             System.err.println("Error getting seat recommendations: " + e.getMessage());
