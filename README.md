@@ -24,11 +24,13 @@ Installeeritud Java 17+
 Installeeritud Maven
 Git (valikuline, lähtekoodi kloonimiseks)
 ### Lähtekoodi hankimine
-´´´
+```
 git clone https://github.com/12tristan12/lennu-planeerija.git
-´´´
+```
+```
 cd lennu-planeerija
-Rakenduse ehitamine ja käivitamine
+```
+### Rakenduse ehitamine ja käivitamine
 Rakendus käivitub aadressil http://localhost:8080
 
 ## Rakenduse arhitektuur
@@ -54,16 +56,20 @@ seats.js - Istekohtade haldus
 
 ### API dokumentatsioon
 Lendude API
+```
 GET /api/flights - Kõikide lendude päring
 GET /api/flights/{id} - Konkreetse lennu info päring
 GET /api/flights/{id}/seats - Lennu istekohtade päring
 POST /api/flights - Uue lennu lisamine
 DELETE /api/flights/{id} - Lennu kustutamine
+```
 Istekohtade API
+```
 GET /api/flights/{flightId}/recommended-seats - Soovitatud istekohtade päring
 POST /api/flights/{flightId}/seats - Istekoha broneerimine
 PUT /api/flights/{flightId}/seats/{seatId} - Istmekoha info muutmine
 PUT /api/flights/{flightId}/seats/row/{rowNumber} - Terve rea klassi muutmine
+```
 Istekohtade soovitusalgoritm
 Rakendus kasutab nutikat algoritmi, mis soovitab kasutajatele istekohti vastavalt järgmistele parameetritele:
 
@@ -110,7 +116,6 @@ RESTful API disain - API on ehitatud REST põhimõtteid järgides
 Responsive disain - Kasutajaliides kohandub erinevate ekraanisuurustega
 Kasutajakeskne disain - Rakendus on loodud pöörates tähelepanu kasutajakogemusele
 Edaspidine arendus
-Tulevikuplaanid rakenduse edasiarenduseks:
 
 ### Abivahendid
 Kasutatud Claude mudeleid üleüldise vormistuse ja console.logide vormistamisel 
