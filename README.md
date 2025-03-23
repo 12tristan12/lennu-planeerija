@@ -115,7 +115,8 @@ SOLID põhimõtted - Koodi kirjutamisel on järgitud häid objektorienteeritud p
 RESTful API disain - API on ehitatud REST põhimõtteid järgides
 Responsive disain - Kasutajaliides kohandub erinevate ekraanisuurustega
 Kasutajakeskne disain - Rakendus on loodud pöörates tähelepanu kasutajakogemusele
-Edaspidine arendus
+Edaspidine arendus:
+Katsetasin Amadeusist saada päris lennuinfot, aga selle arendamine lõpuni jäi poolikuks. Sain tehtud täpselt nii, et kannab andmebaasi poolikult infot.
 
 ### Abivahendid
 Kasutatud Claude mudeleid üleüldise vormistuse ja console.logide vormistamisel 
