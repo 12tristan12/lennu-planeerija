@@ -110,7 +110,7 @@ Kasutajakeskne disain - Rakendus on loodud pöörates tähelepanu kasutajakogemu
 Edaspidine arendus
 Tulevikuplaanid rakenduse edasiarenduseks:
 
-# ##Abivahendid
+### Abivahendid
 Kasutatud Claude mudeleid üleüldise vormistuse ja console.logide vormistamisel 
 Kasutatud spring.booti ülesehitamisel ning ja klasside struktuuri ja üleüldise ülesehituse genereerimisel
 Kasutatud JavaScripti failide ülesehituse genereerimisel. Osad funktsioonid tehtud Claude AI abiga
