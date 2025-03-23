@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmButton = document.getElementById('confirm-seats');
     const flightInfo = document.getElementById('flight-info');
     
-    // Log found elements to verify DOM queries
     console.log('Found elements:', {
         flightsList: !!flightsList,
         searchForm: !!searchForm,
@@ -16,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
         preferencesForm: !!preferencesForm
     });
 
-    // Get flight ID from URL
     const urlParams = new URLSearchParams(window.location.search);
     const flightId = urlParams.get('flightId');
     console.log('Current page info:', {
@@ -27,11 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let selectedSeats = [];
 
+    // Alustamine
     async function loadFlights() {
-        console.log('Loading flights...'); // Debug log
+        console.log('Loading flights...'); 
         try {
             const flights = await api.getFlights();
-            console.log('Flights received:', flights); // Debug log
+            console.log('Flights received:', flights); 
             displayFlights(flights);
         } catch (error) {
             console.error('Error loading flights:', error);
@@ -39,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Modify the select seats button click handler in displayFlights function
+    // Näitamine
     function displayFlights(flights) {
         if (!flights || flights.length === 0) {
             flightsList.innerHTML = '<p>Ühtegi lendu ei leitud.</p>';
@@ -72,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         flightsList.innerHTML = flightsHTML;
     }
 
+    // Vormistamine
     function formatDateTime(dateTimeStr) {
         if (!dateTimeStr) return 'N/A';
         const date = new Date(dateTimeStr);
@@ -84,10 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Load flights when page loads
     loadFlights();
 
-    // Handle search form submission
     if (searchForm) {
         searchForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -103,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 departure,
                 arrival,
                 dateFrom,
-                classType,  // Debug klassivalik
+                classType,
                 passengers
             });
 
@@ -113,7 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                // Teisendame classType õigesse vormingusse
                 let seatClassFormat;
                 switch(classType.toLowerCase()) {
                     case 'first':
@@ -128,23 +125,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 console.log("Otsingu klass teisendatud: " + seatClassFormat);
                 
-                // Lendude otsimine
                 const flights = await api.getFlights();
                 
-                // Filtreerimine vastavalt parameetritele
                 const filteredFlights = flights.filter(flight => 
                     flight.origin.toLowerCase() === departure.toLowerCase() &&
                     flight.destination.toLowerCase() === arrival.toLowerCase() &&
                     flight.departureTime.startsWith(dateFrom)
                 );
                 
-                // Istmete kättesaadavuse kontroll
                 const availableFlights = await Promise.all(
                     filteredFlights.map(async (flight) => {
                         const seats = await api.getSeats(flight.id);
                         const availableSeats = seats.filter(seat => {
                             if (!seat.isBooked) {
-                                // Kasutame õigeid kontrollimise meetodeid vastavalt klassile
                                 switch(seatClassFormat) {
                                     case 'FIRST': return seat.isFirstClass;
                                     case 'BUSINESS': return seat.isBusinessClass;
@@ -165,7 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const finalFlights = availableFlights.filter(flight => flight !== null);
                 console.log('Final available flights:', finalFlights);
                 
-                // Lisame sessiooni storage'isse, et meeles pidada valitud klassi
                 sessionStorage.setItem('selectedSeatClass', seatClassFormat);
                 
                 displayFlights(finalFlights);
@@ -176,6 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Info
     function displayFlightInfo(flight) {
         flightInfo.innerHTML = `
             <h2>${flight.origin} → ${flight.destination}</h2>
@@ -184,13 +177,12 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
+    // Visualiseerimine
     function renderSeats(seats, recommendedSeatNumbers) {
         if (!seatsGrid) return;
         
-        // Puhastame eelmised soovitused
         seatsGrid.innerHTML = '';
         
-        // Lisa legend
         const legendDiv = document.createElement('div');
         legendDiv.className = 'seat-legend';
         legendDiv.innerHTML = `
@@ -215,7 +207,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         console.log("Renderdame istmed, soovituslikud:", recommendedSeatNumbers);
 
-        // Organiseerime istmed ridade ja tähtede järgi
         const seatsByRow = {};
         seats.forEach(seat => {
             const seatNumber = seat.seatNumber;
@@ -226,13 +217,11 @@ document.addEventListener('DOMContentLoaded', () => {
             seatsByRow[row].push(seat);
         });
         
-        // Lisame pealkirja soovitatud istmete arvuga
         const header = document.createElement('div');
         header.className = 'seats-header';
         header.textContent = `Leitud ${recommendedSeatNumbers.length} soovitatud istekohta`;
         seatsGrid.appendChild(header);
 
-        // Renderdame read
         const sortedRows = Object.keys(seatsByRow).sort((a, b) => parseInt(a) - parseInt(b));
         sortedRows.forEach(row => {
             const rowDiv = document.createElement('div');
@@ -244,19 +233,16 @@ document.addEventListener('DOMContentLoaded', () => {
             rowLabel.textContent = row;
             rowDiv.appendChild(rowLabel);
             
-            // Sorteeri istmed tähestikulises järjekorras
             const sortedSeats = seatsByRow[row].sort((a, b) => {
                 const letterA = a.seatNumber.replace(/[0-9]/g, '');
                 const letterB = b.seatNumber.replace(/[0-9]/g, '');
                 return letterA.localeCompare(letterB);
             });
             
-            // Lisa iga iste selgelt märgistatud soovitusega
             let lastSeatLetter = null;
             sortedSeats.forEach(seat => {
                 const seatLetter = seat.seatNumber.replace(/[0-9]/g, '');
                 
-                // Lisa vahekäik C ja D istmete vahele
                 if (lastSeatLetter === 'C' && seatLetter === 'D') {
                     const aisle = document.createElement('div');
                     aisle.className = 'seat-aisle';
@@ -274,23 +260,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Valimine
     function toggleSeatSelection(seatElement, seat) {
-        // Kontrolli, kas iste on juba valitud
         if (seatElement.classList.contains('selected')) {
-            // Kui on valitud, siis eemaldame valiku
             seatElement.classList.remove('selected');
             selectedSeats = selectedSeats.filter(s => s !== seat.seatNumber);
         } else {
-            // Kui pole valitud, lisame valiku, kuid jätame alles "recommended" klassi
             seatElement.classList.add('selected');
             selectedSeats.push(seat.seatNumber);
         }
 
-        // Uuenda valitud istmete infot, kui see element on olemas
         updateSelectedSeatsInfo();
     }
 
-    // Add event listener for seat selection buttons
     if (confirmButton) {
         confirmButton.addEventListener('click', async () => {
             if (selectedSeats.length === 0) {
@@ -309,24 +291,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Muudame loadSeats funktsiooni, et võtta arvesse istme eelistusi ühe reisija puhul
+    // Laadimine
     async function loadSeats() {
         console.log('loadSeats function starting...');
         try {
             const urlParams = new URLSearchParams(window.location.search);
             const passengers = parseInt(urlParams.get('passengers')) || 1;
             
-            // Üritame kõigepealt saada sessiooni storage'ist istmeklassi
             let seatClass = sessionStorage.getItem('selectedSeatClass');
             
-            // Kui puudub, siis proovime URL-ist või kasutame ECONOMY vaikimisi
             if (!seatClass) {
                 seatClass = (urlParams.get('seatClass') || 'ECONOMY').toUpperCase();
             }
             
             console.log('Using seat class from session/URL:', seatClass);
             
-            // Seadistame ka UI vastavalt valitud klassile
             if (document.getElementById('seatClass')) {
                 document.getElementById('seatClass').value = seatClass;
             }
@@ -336,7 +315,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // Võtame kõik istmed
             const seats = await api.getSeats(flightId);
             console.log('All seats loaded:', seats.length);
             
@@ -345,7 +323,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // Loeme eelistusi UI-st, kui reisijaid on ainult üks
             const windowSeat = passengers === 1 ? 
                 (document.getElementById('windowSeat')?.checked || false) : 
                 false;
@@ -356,18 +333,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             console.log('Preferences for 1 passenger:', { windowSeat, extraLegroom });
             
-            // Saame soovitused koos istmeklassiga
             console.log('Requesting recommendations with class:', seatClass);
             const recommendedSeats = await api.getRecommendedSeats(flightId, {
                 passengers: passengers,
-                windowSeat: windowSeat, // Nüüd kasutab kasutaja eelistust
-                extraLegroom: extraLegroom, // Nüüd kasutab kasutaja eelistust
+                windowSeat: windowSeat,
+                extraLegroom: extraLegroom,
                 seatClass: seatClass,
                 excludedSeats: []
             });
             console.log('Received recommended seats:', recommendedSeats.length);
 
-            // Eraldame istmenumbrid soovitatud istmetest
             const recommendedSeatNumbers = recommendedSeats.map(seat => seat.seatNumber);
             console.log('Recommended seat numbers:', recommendedSeatNumbers);
 
@@ -382,7 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Samuti muudame filterAndDisplaySeats funktsiooni
+    // Filtreerimine
     async function filterAndDisplaySeats(preferences, flightId) {
         try {
             const seats = await api.getSeats(flightId);
@@ -390,11 +365,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             console.log('Getting seat recommendations with preferences:', preferences);
             
-            // Teisendame istmeklassi suurtähtedeks ja teeme kindlaks, et see on üks kolmest õigest väärtusest
             const validClass = preferences.seatClass.toUpperCase();
             const seatClass = ['ECONOMY', 'BUSINESS', 'FIRST'].includes(validClass) ? validClass : 'ECONOMY';
             
-            // Kasutame windowSeat ja extraLegroom ainult siis, kui on üks reisija
             const useWindowSeat = numberOfPassengers === 1 ? preferences.windowSeat : false;
             const useExtraLegroom = numberOfPassengers === 1 ? preferences.extraLegroom : false;
             
@@ -415,11 +388,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             console.log('Filtered recommended seats:', recommendedSeats.length);
             
-            // Eraldame istmenumbrid soovitatud istmetest
             const recommendedSeatNumbers = recommendedSeats.map(seat => seat.seatNumber);
             console.log('Recommended seat numbers:', recommendedSeatNumbers);
             
-            // Anname edasi istmenumbrid, mitte istmeobjektid
             renderSeats(seats, recommendedSeatNumbers);
         } catch (error) {
             console.error('Error filtering seats:', error);
@@ -427,13 +398,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Initialize seats only if we're on the seats page
     if (window.location.pathname.includes('seatsPlan.html') && flightId) {
         console.log('Initializing seats page with flightId:', flightId);
         loadSeats();
     }
         
-    // **ÜHTLUSTATUD** modaali ja istmeklassi käsitlemine
     window.showSeatPreferencesModal = function(flightId) {
         const modal = document.getElementById('seat-preferences-modal');
         if (!modal) return;
@@ -441,11 +410,9 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.style.display = "block";
         modal.dataset.flightId = flightId;
 
-        // Eemaldame eelnevad tagasisided
         document.querySelectorAll('.filter-feedback').forEach(el => el.remove());
     };
 
-    // **ÜHTLUSTATUD** istmeklassi muutmise käsitlemine - ainult üks event listener
     if (document.getElementById('seatClass')) {
         document.getElementById('seatClass').addEventListener('change', function() {
             console.log("Istmeklass muudetud: " + this.value);
@@ -453,20 +420,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const seatClass = this.value.toUpperCase();
             console.log("Valitud istmeklass: " + seatClass);
             
-            // Muudame extraLegroom valikut vastavalt istmeklassile
             const extraLegroomContainer = document.getElementById('extraLegroom-container');
             if (extraLegroomContainer) {
                 extraLegroomContainer.style.display = 
                     seatClass === 'ECONOMY' ? 'block' : 'none';
             }
             
-            // Anname kasutajale teada, et muudatuste rakendamiseks tuleb klikkida "Filtreeri" nupule
             const modal = document.getElementById('seat-preferences-modal');
             if (modal && modal.style.display === "block") {
-                // Eemaldame vanad teated
                 document.querySelectorAll('.class-change-message').forEach(el => el.remove());
                 
-                // Lisame uue teate
                 const message = document.createElement('div');
                 message.className = 'class-change-message';
                 message.textContent = "Klikki 'Filtreeri' nuppu, et näha " + seatClass + " klassi istmeid";
@@ -476,13 +439,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const formActions = modal.querySelector('.form-actions') || modal.querySelector('form');
                 formActions?.appendChild(message);
                 
-                // Eemaldame sõnumi mõne sekundi pärast
                 setTimeout(() => message.remove(), 5000);
             }
         });
     }
 
-    // **ÜHTLUSTATUD** preferences vormi submit handler - ainult üks event listener
     if (preferencesForm) {
         preferencesForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -493,7 +454,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const windowSeatElement = document.getElementById('windowSeat');
             const passengersElement = document.getElementById('passengers');
             
-            // Kontrolli, et elemendid leiti
             if (!modal || !seatClassElement) {
                 console.error("Ei leia vajalikke elemente");
                 return;
@@ -503,7 +463,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const seatClass = seatClassElement.value;
             const numberOfPassengers = parseInt(passengersElement?.value || 1);
             
-            // Veendu, et checkboxide väärtused on tõesti booleanid
             const useWindowSeat = numberOfPassengers === 1 && !!windowSeatElement?.checked;
             const useExtraLegroom = numberOfPassengers === 1 && !!extraLegroomElement?.checked;
             
@@ -518,28 +477,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     
             const preferences = {
                 seatClass: seatClass,
-                extraLegroom: useExtraLegroom,  // Kindlustame et see on boolean
-                windowSeat: useWindowSeat,      // Kindlustame et see on boolean
+                extraLegroom: useExtraLegroom,
+                windowSeat: useWindowSeat,     
                 passengers: numberOfPassengers
             };
 
             console.log("API-sse saadetavad eelistused:", preferences);
             
             try {
-                // Näitame kasutajale, et toimub laadimine
                 const loadingMsg = document.createElement('div');
                 loadingMsg.className = 'loading-message';
                 loadingMsg.textContent = 'Filtreerin istmeid...';
                 modal.appendChild(loadingMsg);
                 
-                // Teeme API päringu ja uuendame istemete vaadet
                 await filterAndDisplaySeats(preferences, flightId);
                 
-                // Eemaldame laadimissõnumi
                 loadingMsg.remove();
                 modal.style.display = "none";
                 
-                // Kuvame istmeplaani
                 if (seatsGrid) {
                     seatsGrid.style.display = 'block';
                 }
@@ -550,7 +505,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Close modal when clicking outside
     window.onclick = function(event) {
         const modal = document.getElementById('seat-preferences-modal');
         if (event.target === modal) {
@@ -558,20 +512,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Initial load of flights
     if (flightsList && !flightId) {
         loadFlights();
     }
 
-    // Peida istmeklassi nupp istmeplaani lehel
     if (window.location.pathname.includes('seatsPlan.html')) {
-        // Peida istmeklassi nupp päises (kui see on seal)
         const seatClassBtn = document.querySelector('.seat-class-btn');
         if (seatClassBtn) {
             seatClassBtn.style.display = 'none';
         }
         
-        // Peida ka istmeklassi valikuga seotud elemendid, kui need on lehel
         const seatClassSection = document.querySelector('.seat-class-section');
         if (seatClassSection) {
             seatClassSection.style.display = 'none';
@@ -579,20 +529,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Lisa see kood, et filtreerimise nupp töötaks õigesti
 document.addEventListener('DOMContentLoaded', function() {
-    // Peida istmeklassi valik istmeplaani lehel
     if (document.body.getAttribute('data-page') === 'seats-plan') {
         const seatClassGroup = document.querySelector('.form-group:has(#seatClass)');
         if (seatClassGroup) {
             seatClassGroup.style.display = 'none';
         }
         
-        // Lisa flightId muutuja HTMLi
         const urlParams = new URLSearchParams(window.location.search);
         const flightId = urlParams.get('flightId');
         
-        // Lisa onclick handler filtreerimise nupule
         const filterBtn = document.querySelector('.filter-seats-btn');
         if (filterBtn) {
             filterBtn.onclick = function() {
@@ -602,25 +548,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Loomine
 function createSeatElement(seat, isRecommended) {
     const seatDiv = document.createElement('div');
     
-    // Määra peamine klass istme oleku järgi - ainult available/booked
     seatDiv.className = seat.isBooked 
         ? 'seat booked' 
         : 'seat available';
     
-    // Lisa recommended märgistus ilma valimata
     if (isRecommended && !seat.isBooked) {
         seatDiv.classList.add('recommended');
-        // Lisa tärnike või märk soovitusena
         const recommendedIcon = document.createElement('span');
         recommendedIcon.className = 'recommendation-icon';
         recommendedIcon.textContent = '★';
         seatDiv.appendChild(recommendedIcon);
     }
     
-    // Lisa istmeklassi stiil
     if (seat.isFirstClass) {
         seatDiv.classList.add('first-class');
     } else if (seat.isBusinessClass) {
@@ -629,7 +572,6 @@ function createSeatElement(seat, isRecommended) {
         seatDiv.classList.add('economy-class');
     }
     
-    // Lisa lisaomadused
     if (seat.isWindowSeat) {
         seatDiv.classList.add('window-seat');
     }
@@ -638,12 +580,10 @@ function createSeatElement(seat, isRecommended) {
         seatDiv.classList.add('extra-legroom');
     }
     
-    // Loo sisu konteiner istme numbri jaoks
     const seatNumber = document.createElement('span');
     seatNumber.textContent = seat.seatNumber;
     seatDiv.appendChild(seatNumber);
     
-    // Lisa klikkimise sündmus ainult vabadele istmetele
     if (!seat.isBooked) {
         seatDiv.addEventListener('click', () => {
             toggleSeatSelection(seatDiv, seat);
@@ -653,44 +593,36 @@ function createSeatElement(seat, isRecommended) {
     return seatDiv;
 }
 
-// Parenda toggleSeatSelection funktsiooni
+// Valimine
 function toggleSeatSelection(seatElement, seat) {
-    // Kontrolli, kas iste on juba valitud
     if (seatElement.classList.contains('selected')) {
-        // Kui on valitud, siis eemaldame valiku
         seatElement.classList.remove('selected');
         selectedSeats = selectedSeats.filter(s => s !== seat.seatNumber);
     } else {
-        // Kui pole valitud, lisame valiku, kuid jätame alles "recommended" klassi
         seatElement.classList.add('selected');
         selectedSeats.push(seat.seatNumber);
     }
 
-    // Uuenda valitud istmete infot, kui see element on olemas
     updateSelectedSeatsInfo();
 }
 
-// Lisa funktsioon istmete info uuendamiseks
+// Uuendamine
 function updateSelectedSeatsInfo() {
     const selectedSeatsElement = document.getElementById('selectedSeats');
     const totalPriceElement = document.getElementById('totalPrice');
     
     if (selectedSeatsElement) {
-        // Uuendame valitud istmete nimekirja
         selectedSeatsElement.innerHTML = '';
         let totalPrice = 0;
         
-        // Sorteeri istmed numbri järgi
         const sortedSeats = [...selectedSeats].sort();
         
-        // Lisa iga valitud iste nimekirja
         sortedSeats.forEach(seatNumber => {
             const li = document.createElement('li');
             li.textContent = `Istekoht ${seatNumber}`;
             selectedSeatsElement.appendChild(li);
         });
 
-        // Uuenda "Vali istekohad" nupu olekut
         const confirmButton = document.getElementById('confirm-seats');
         if (confirmButton) {
             confirmButton.disabled = selectedSeats.length === 0;
@@ -698,15 +630,12 @@ function updateSelectedSeatsInfo() {
     }
 }
 
-// Loome globaalse renderSeats funktsiooni, mida saab kasutada seatsPlan.html lehel
 window.renderSeats = function(seats, recommendedSeatNumbers) {
     const seatsGrid = document.getElementById('seats-grid');
     if (!seatsGrid) return;
     
-    // Puhastame eelmised soovitused
     seatsGrid.innerHTML = '';
     
-    // Lisa legend
     const legendDiv = document.createElement('div');
     legendDiv.className = 'seat-legend';
     legendDiv.innerHTML = `
@@ -729,13 +658,11 @@ window.renderSeats = function(seats, recommendedSeatNumbers) {
     `;
     seatsGrid.appendChild(legendDiv);
     
-    // Lisame pealkirja soovitatud istmete arvuga
     const header = document.createElement('div');
     header.className = 'seats-header';
     header.textContent = `Leitud ${recommendedSeatNumbers.length} soovitatud istekohta`;
     seatsGrid.appendChild(header);
 
-    // Organiseerime istmed ridade ja tähtede järgi
     const seatsByRow = {};
     seats.forEach(seat => {
         const seatNumber = seat.seatNumber;
@@ -746,7 +673,6 @@ window.renderSeats = function(seats, recommendedSeatNumbers) {
         seatsByRow[row].push(seat);
     });
 
-    // Renderdame read
     const sortedRows = Object.keys(seatsByRow).sort((a, b) => parseInt(a) - parseInt(b));
     sortedRows.forEach(row => {
         const rowDiv = document.createElement('div');
@@ -758,19 +684,16 @@ window.renderSeats = function(seats, recommendedSeatNumbers) {
         rowLabel.textContent = row;
         rowDiv.appendChild(rowLabel);
         
-        // Sorteeri istmed tähestikulises järjekorras
         const sortedSeats = seatsByRow[row].sort((a, b) => {
             const letterA = a.seatNumber.replace(/[0-9]/g, '');
             const letterB = b.seatNumber.replace(/[0-9]/g, '');
             return letterA.localeCompare(letterB);
         });
         
-        // Lisa iga iste selgelt märgistatud soovitusega
         let lastSeatLetter = null;
         sortedSeats.forEach(seat => {
             const seatLetter = seat.seatNumber.replace(/[0-9]/g, '');
             
-            // Lisa vahekäik C ja D istmete vahele
             if (lastSeatLetter === 'C' && seatLetter === 'D') {
                 const aisle = document.createElement('div');
                 aisle.className = 'seat-aisle';
@@ -788,16 +711,37 @@ window.renderSeats = function(seats, recommendedSeatNumbers) {
     });
 };
 
-// Lisa see kood search-form submit handleri sisse:
+window.renderSeats = function(seats, recommendedSeatNumbers) {
+    const createSeatElement = (seat, isRecommended) => {
+        const seatDiv = document.createElement('div');
+        seatDiv.className = seat.isBooked ? 'seat booked' : 'seat available';
+        
+        seatDiv.dataset.seatNumber = seat.seatNumber;
+        
+        if (isRecommended && !seat.isBooked) {
+            seatDiv.classList.add('recommended');
+            const star = document.createElement('span');
+            star.className = 'recommendation-icon';
+            star.textContent = '★';
+            seatDiv.appendChild(star);
+        }
+        
+        const seatNumber = document.createElement('span');
+        seatNumber.className = 'seat-number';
+        seatNumber.textContent = seat.seatNumber;
+        seatDiv.appendChild(seatNumber);
+        
+        return seatDiv;
+    };
+}
+
 document.getElementById('search-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    // Salvesta eelistused sessionStorage-isse
     const windowSeat = document.getElementById('windowSeat')?.checked || false;
     const extraLegroom = document.getElementById('extraLegroom')?.checked || false;
     const seatClass = document.getElementById('seatClass')?.value || 'ECONOMY';
 
-    // Salvesta sessionStorage-isse, et neid saaks kasutada seatsPlan.html lehel
     sessionStorage.setItem('windowSeat', windowSeat.toString());
     sessionStorage.setItem('extraLegroom', extraLegroom.toString());
     sessionStorage.setItem('selectedSeatClass', seatClass);
@@ -807,6 +751,157 @@ document.getElementById('search-form').addEventListener('submit', async function
         extraLegroom: extraLegroom,
         seatClass: seatClass
     });
+});
+
+window.renderSeats = function(seats, recommendedSeatNumbers) {
+    const seatsGrid = document.getElementById('seats-grid');
+    if (!seatsGrid) {
+        console.error('Seats grid element not found');
+        return;
+    }
     
-    // ...ülejäänud kood...
+    const rowsMap = {};
+    seats.forEach(seat => {
+        if (!rowsMap[seat.row]) {
+            rowsMap[seat.row] = [];
+        }
+        rowsMap[seat.row].push(seat);
+    });
+    
+    const sortedRows = Object.keys(rowsMap).sort((a, b) => parseInt(a) - parseInt(b));
+    
+    seatsGrid.innerHTML = '';
+    
+    window.selectedSeats = window.selectedSeats || new Set();
+    
+    sortedRows.forEach(rowNum => {
+        const row = rowsMap[rowNum];
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'seat-row';
+        
+        row.sort((a, b) => a.col - b.col);
+        
+        row.forEach(seat => {
+            const isRecommended = recommendedSeatNumbers && recommendedSeatNumbers.includes(seat.seatNumber);
+            
+            const seatDiv = document.createElement('div');
+            seatDiv.className = seat.isBooked ? 'seat booked' : 'seat available';
+            
+            seatDiv.dataset.seatNumber = seat.seatNumber;
+            
+            if (isRecommended && !seat.isBooked) {
+                seatDiv.classList.add('recommended');
+                const star = document.createElement('span');
+                star.className = 'recommendation-icon';
+                star.textContent = '★';
+                seatDiv.appendChild(star);
+            }
+            
+            const seatNumber = document.createElement('span');
+            seatNumber.className = 'seat-number';
+            seatNumber.textContent = seat.seatNumber;
+            seatDiv.appendChild(seatNumber);
+            
+            rowDiv.appendChild(seatDiv);
+        });
+        
+        seatsGrid.appendChild(rowDiv);
+    });
+    
+    console.log('Seats rendered successfully');
+    
+    setupSeatSelection();
+};
+
+// Seadistamine
+function setupSeatSelection() {
+    console.log('Setting up seat selection handlers');
+    const seatsGrid = document.getElementById('seats-grid');
+    const confirmButton = document.getElementById('confirm-seats');
+    const selectedSeatsList = document.getElementById('selectedSeats');
+    
+    if (!seatsGrid || !confirmButton || !selectedSeatsList) {
+        console.error('Missing required elements for seat selection');
+        return;
+    }
+    
+    window.selectedSeats = window.selectedSeats || new Set();
+    
+    const newSeatsGrid = seatsGrid.cloneNode(true);
+    seatsGrid.parentNode.replaceChild(newSeatsGrid, seatsGrid);
+    
+    newSeatsGrid.addEventListener('click', function(e) {
+        const seat = e.target.closest('.seat.available');
+        if (!seat) return;
+        
+        const seatNumber = seat.dataset.seatNumber;
+        
+        if (seatNumber) {
+            console.log('Clicked on seat:', seatNumber);
+            
+            if (seat.classList.contains('selected')) {
+                seat.classList.remove('selected');
+                window.selectedSeats.delete(seatNumber);
+                console.log('Unselected seat:', seatNumber, 'Selected seats:', Array.from(window.selectedSeats));
+            } else {
+                seat.classList.add('selected');
+                window.selectedSeats.add(seatNumber);
+                console.log('Selected seat:', seatNumber, 'Selected seats:', Array.from(window.selectedSeats));
+            }
+            
+            updateSelectedSeatsList();
+            
+            confirmButton.disabled = window.selectedSeats.size === 0;
+            console.log('Button enabled:', !confirmButton.disabled);
+        }
+    });
+    
+    confirmButton.addEventListener('click', async function() {
+        if (window.selectedSeats.size === 0) {
+            alert('Palun vali vähemalt üks istekoht');
+            return;
+        }
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const flightId = urlParams.get('flightId');
+        const seatNumbers = Array.from(window.selectedSeats);
+        
+        try {
+            console.log('Booking seats:', seatNumbers);
+            await api.bookSeats(flightId, seatNumbers);
+            alert('Istekohad on broneeritud!');
+            window.location.href = '/';
+        } catch (error) {
+            console.error('Error booking seats:', error);
+            alert('Viga istekohtade broneerimisel');
+        }
+    });
+    
+    console.log('Seat selection handlers set up successfully');
+}
+
+// Värskendamine
+function updateSelectedSeatsList() {
+    const selectedSeatsList = document.getElementById('selectedSeats');
+    if (selectedSeatsList) {
+        selectedSeatsList.innerHTML = Array.from(window.selectedSeats).map(seatNum => 
+            `<li>${seatNum}</li>`
+        ).join('');
+    }
+}
+
+document.getElementById('flight-search').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const windowSeat = document.getElementById('windowSeat').checked;
+    const extraLegroom = document.getElementById('extraLegroom').checked;
+    const seatClass = document.getElementById('classType').value;
+    const passengers = document.getElementById('passengers').value || '1';
+    
+    sessionStorage.setItem('windowSeat', windowSeat);
+    sessionStorage.setItem('extraLegroom', extraLegroom);
+    sessionStorage.setItem('selectedSeatClass', seatClass);
+    sessionStorage.setItem('passengers', passengers);
+    
+    console.log('Saved preferences to sessionStorage:', { windowSeat, extraLegroom, seatClass, passengers });
 });

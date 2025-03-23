@@ -9,12 +9,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentFlightId = null;
     let allSeats = [];
 
+    // Identifitseerimine
     function getFlightIdFromUrl() {
         const urlParams = new URLSearchParams(window.location.search);
         const flightId = urlParams.get('flightId');
         return flightId;
     }
 
+    // Käivitamine
     async function initialize() {
         try {
             const flightId = getFlightIdFromUrl();
@@ -35,6 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Informeerimine
     function displayFlightInfo(flight) {
         flightInfo.innerHTML = `
             <div class="flight-header">
@@ -47,6 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
     }
 
+    // Kujutamine
     function generateSeats(seatData) {
         if (!seatData || seatData.length === 0) {
             seatsGrid.innerHTML = '<p class="no-seats">No seats available for this flight.</p>';
@@ -59,7 +63,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         seatsGrid.innerHTML = '';
 
-        // Add class management controls
         const classManagement = document.createElement('div');
         classManagement.className = 'class-management';
         classManagement.innerHTML = `
@@ -113,10 +116,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             seatsGrid.appendChild(row);
         }
 
-        // Add event listeners for class changes
         document.getElementById('applyClassChange').addEventListener('click', changeRowClass);
     }
 
+    // Lisamine
     function addSeat(row, i, letter, seatData) {
         const seatNumber = `${i}${letter}`;
         const seatInfo = seatData.find(s => s.seatNumber === seatNumber);
@@ -129,7 +132,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const seat = document.createElement('div');
         seat.className = `seat ${seatInfo.isBooked ? 'occupied' : 'available'}`;
         
-        // Add class-specific styling
         if (seatInfo.isFirstClass) {
             seat.classList.add('first');
         } else if (seatInfo.isBusinessClass) {
@@ -165,6 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         row.appendChild(seat);
     }
 
+    // Valimine
     function toggleSeatSelection(seat) {
         const seatNumber = seat.dataset.seatNumber;
         const price = parseFloat(seat.dataset.price);
@@ -180,6 +183,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateSelectedSeatsDisplay();
     }
 
+    // Värskendamine
     function updateSelectedSeatsDisplay() {
         const seats = Array.from(selectedSeats);
         let totalPrice = 0;
@@ -195,6 +199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         confirmButton.disabled = seats.length === 0;
     }
 
+    // Vormindamine
     function formatDateTime(dateTimeStr) {
         if (!dateTimeStr) return 'N/A';
         const date = new Date(dateTimeStr);
@@ -207,13 +212,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Function to change the class of an entire row
+    // Administreerimine
     async function changeRowClass() {
         try {
             const rowNumber = document.getElementById('rowNumber').value;
             let classData = {};
             
-            // Determine which class button was last clicked
             const firstClassBtn = document.getElementById('setFirstClass');
             const businessClassBtn = document.getElementById('setBusinessClass');
             const economyClassBtn = document.getElementById('setEconomyClass');
@@ -229,7 +233,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             
-            // Show loading indicator
             const applyBtn = document.getElementById('applyClassChange');
             const originalText = applyBtn.textContent;
             applyBtn.textContent = 'Updating...';
@@ -237,7 +240,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             await api.updateSeatsByRow(currentFlightId, rowNumber, classData);
             
-            // Refresh seat data after update
             allSeats = await api.getSeats(currentFlightId);
             generateSeats(allSeats);
             
@@ -252,7 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Set up controls for recommendation system
+    // Soovitamine
     function setupRecommendationControls() {
         if (!recommendationControls) return;
         
@@ -287,29 +289,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('getRecommendations').addEventListener('click', getRecommendedSeats);
     }
 
-    // Function to get recommended seats
+    // Abistamine
     async function getRecommendedSeats() {
         try {
             const params = {
                 passengers: parseInt(document.getElementById('passengerCount').value),
                 windowSeat: document.getElementById('windowSeat').checked,
                 extraLegroom: document.getElementById('extraLegroom').checked,
-                seatClass: document.getElementById('seatClass').value // Add seat class parameter
+                seatClass: document.getElementById('seatClass').value
             };
             
-            // Show loading state
             const button = document.getElementById('getRecommendations');
             button.textContent = 'Finding...';
             button.disabled = true;
             
             const recommendedSeats = await api.getRecommendedSeats(currentFlightId, params);
             
-            // Clear any previous highlighting
             document.querySelectorAll('.seat.recommended').forEach(seat => {
                 seat.classList.remove('recommended');
             });
             
-            // Highlight recommended seats
             if (recommendedSeats.length > 0) {
                 recommendedSeats.forEach(seat => {
                     const seatElement = document.querySelector(`.seat[data-seat-number="${seat.seatNumber}"]`);
@@ -318,7 +317,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 });
                 
-                // Show recommendation results
                 const resultsDiv = document.getElementById('recommendationResults');
                 resultsDiv.innerHTML = `
                     <h4>Recommended Seats</h4>
@@ -333,15 +331,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <button id="selectRecommended" class="secondary-btn">Select These Seats</button>
                 `;
                 
-                // Add event listener to select recommended seats
                 document.getElementById('selectRecommended').addEventListener('click', () => {
-                    // Clear current selection
                     selectedSeats.clear();
                     document.querySelectorAll('.seat.selected').forEach(seat => {
                         seat.classList.remove('selected');
                     });
                     
-                    // Select recommended seats
                     recommendedSeats.forEach(seat => {
                         const seatElement = document.querySelector(`.seat[data-seat-number="${seat.seatNumber}"]`);
                         if (seatElement && !seatElement.classList.contains('occupied')) {
@@ -363,26 +358,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <p class="error">Error getting recommendations: ${error.message}</p>
             `;
         } finally {
-            // Reset button state
             const button = document.getElementById('getRecommendations');
             button.textContent = 'Get Recommendations';
             button.disabled = false;
         }
     }
 
-    // Add event listeners to class buttons to make them selectable
     document.addEventListener('click', function(event) {
         if (event.target.classList.contains('class-btn')) {
-            // Remove selected class from all buttons
             document.querySelectorAll('.class-btn').forEach(btn => {
                 btn.classList.remove('selected');
             });
             
-            // Add selected class to clicked button
             event.target.classList.add('selected');
         }
     });
 
+    // Broneerimine
     confirmButton.addEventListener('click', async () => {
         if (selectedSeats.size === 0) {
             alert('Palun vali vähemalt üks istekoht');

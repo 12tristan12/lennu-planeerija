@@ -27,22 +27,26 @@ public class FlightController {
     private final FlightService flightService;
     private final SeatRepository seatRepository;
 
+    // Kontrollerit alustab vajalike sõltuvustega
     public FlightController(FlightService flightService, SeatRepository seatRepository) {
         this.flightService = flightService;
         this.seatRepository = seatRepository;
     }
 
+    // Pakub täieliku nimekirja saadaolevatest lendudest UI-s kuvamiseks
     @GetMapping
     public ResponseEntity<List<Flight>> getAllFlights() {
         List<Flight> flights = flightService.getAllFlights();
         return ResponseEntity.ok(flights);
     }
 
+    // Võimaldab kiiresti kontrollida, et API on ligipääsetav ja töötab
     @GetMapping("/test")
     public String testEndpoint(){
         return "Töötab";
     }
 
+    // Võimaldab administraatoritel süsteemis uusi lende lisada
     @PostMapping
     public ResponseEntity<?> addFlight(@RequestBody Flight flight) {
         try {
@@ -61,6 +65,7 @@ public class FlightController {
         }
     }
 
+    // Hangib üksikasjalikku teavet konkreetse lennu kohta broneerimiseks
     @GetMapping("/{id}")
     public ResponseEntity<Flight> getFlightById(@PathVariable Long id) {
         try {
@@ -71,12 +76,14 @@ public class FlightController {
         }
     }
 
+    // Pakub konkreetsele lennule istekohtade skeemi, et võimaldada istekohtade valikut
     @GetMapping("/{flightId}/seats")
     public ResponseEntity<List<Seats>> getSeatsByFlight(@PathVariable Long flightId) {
         List<Seats> seats = flightService.getSeatsForFlight(flightId);
         return ResponseEntity.ok(seats);
     }
 
+    // Võimaldab reisijatel lennul konkreetset istekohta broneerida
     @PostMapping("/{flightId}/seats")
     public ResponseEntity<?> bookSeat(@PathVariable Long flightId, @RequestParam String seatNumber) {
         Optional<Seats> seatOpt = seatRepository.findBySeatNumberAndFlightId(seatNumber, flightId);
@@ -93,6 +100,7 @@ public class FlightController {
         return ResponseEntity.ok("Koht broneeritud: " + seatNumber);
     }
 
+    // Võimaldab uuendada üksikute istekohtade omadusi hoolduse või hinnamuudatuste jaoks
     @PutMapping("/{flightId}/seats/{seatId}")
     public ResponseEntity<?> updateSeat(
             @PathVariable Long flightId,
@@ -106,25 +114,21 @@ public class FlightController {
 
             Seats seat = seatOpt.get();
             
-            // Verify that the seat belongs to the specified flight
             if (!seat.getFlight().getId().equals(flightId)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Koht ei kuulu määratud lennule");
             }
             
-            // Update seat class properties
             seat.setIsFirstClass(updatedSeat.getIsFirstClass());
             seat.setIsBusinessClass(updatedSeat.getIsBusinessClass());
             seat.setIsEconomyClass(updatedSeat.getIsEconomyClass());
             
-            // Update other properties if needed
             seat.setIsWindowSeat(updatedSeat.getIsWindowSeat());
             seat.setIsExtraLegRoom(updatedSeat.getIsExtraLegRoom());
             if (updatedSeat.getPrice() != null) {
                 seat.setPrice(updatedSeat.getPrice());
             }
             
-            // Save updated seat
             Seats savedSeat = seatRepository.save(seat);
             return ResponseEntity.ok(savedSeat);
         } catch (Exception e) {
@@ -133,7 +137,7 @@ public class FlightController {
         }
     }
     
-    // Batch update seats by row
+    // Võimaldab tõhusalt muuta terve rea istekohtade klasse ja omadusi korraga
     @PutMapping("/{flightId}/seats/row/{rowNumber}")
     public ResponseEntity<?> updateSeatsByRow(
             @PathVariable Long flightId,
@@ -143,20 +147,16 @@ public class FlightController {
             @RequestParam(required = false) Boolean isEconomyClass,
             @RequestParam(required = false) Boolean isExtraLegRoom) {
         try {
-            // Get all seats for the flight
             List<Seats> flightSeats = flightService.getSeatsForFlight(flightId);
             List<Seats> updatedSeats = new ArrayList<>();
             
-            // Filter seats by row number
             for (Seats seat : flightSeats) {
                 String seatNumber = seat.getSeatNumber();
                 String rowPart = seatNumber.replaceAll("[A-Za-z]", "");
                 
                 if (Integer.parseInt(rowPart) == rowNumber) {
-                    // Update class properties if provided
                     if (isFirstClass != null) {
                         seat.setIsFirstClass(isFirstClass);
-                        // If setting to first class, set others to false
                         if (isFirstClass) {
                             seat.setIsBusinessClass(false);
                             seat.setIsEconomyClass(false);
@@ -165,7 +165,6 @@ public class FlightController {
                     
                     if (isBusinessClass != null) {
                         seat.setIsBusinessClass(isBusinessClass);
-                        // If setting to business class, set others to false
                         if (isBusinessClass) {
                             seat.setIsFirstClass(false);
                             seat.setIsEconomyClass(false);
@@ -174,19 +173,16 @@ public class FlightController {
                     
                     if (isEconomyClass != null) {
                         seat.setIsEconomyClass(isEconomyClass);
-                        // If setting to economy class, set others to false
                         if (isEconomyClass) {
                             seat.setIsFirstClass(false);
                             seat.setIsBusinessClass(false);
                         }
                     }
                     
-                    // Update extra legroom if provided
                     if (isExtraLegRoom != null) {
                         seat.setIsExtraLegRoom(isExtraLegRoom);
                     }
                     
-                    // Recalculate price based on updated class
                     Double basePrice = seat.getFlight().getPrice();
                     if (seat.getIsFirstClass()) {
                         seat.setPrice(basePrice + 40.0);
@@ -205,7 +201,6 @@ public class FlightController {
                     .body("Ühtegi kohta reas " + rowNumber + " ei leitud");
             }
             
-            // Save all updated seats
             seatRepository.saveAll(updatedSeats);
             return ResponseEntity.ok("Uuendatud " + updatedSeats.size() + " kohta reas " + rowNumber);
         } catch (Exception e) {
@@ -214,6 +209,7 @@ public class FlightController {
         }
     }
 
+    // Võimaldab kasutajatel leida konkreetseid lende, mis vastavad nende reisikriteeriumidele
     @GetMapping("/search")
     public ResponseEntity<List<Flight>> searchFlights(
         @RequestParam(required = false) String origin,
@@ -225,6 +221,7 @@ public class FlightController {
         return ResponseEntity.ok(filteredFlights);
     }
 
+    // Pakub isikupärastatud istekohtade soovitusi reisija eelistuste põhjal
     @GetMapping("/{flightId}/recommended-seats")
     public ResponseEntity<List<Seats>> getRecommendedSeats(
             @PathVariable Long flightId,
@@ -237,51 +234,31 @@ public class FlightController {
         try {
             List<String> excludedSeatsList = excludedSeats != null ? excludedSeats : new ArrayList<>();
             
-            // Debug info
-            System.out.println("\n=== SEAT RECOMMENDATION REQUEST ===");
-            System.out.println("- Flight ID: " + flightId);
-            System.out.println("- Passengers: " + passengerCount);
-            System.out.println("- Window Seat REQUESTED: " + windowSeat + " (boolean)");
-            System.out.println("- Extra Legroom REQUESTED: " + extraLegroom + " (boolean)");
-            System.out.println("- Raw Seat Class: " + seatClass);
-            
-            // Normalize seat class to uppercase
             String normalizedSeatClass = seatClass.toUpperCase().trim();
-            System.out.println("- Normalized Seat Class: " + normalizedSeatClass);
             
-            // Set only one class type to true based on seatClass parameter
             boolean isFirstClass = normalizedSeatClass.equals("FIRST");
             boolean isBusinessClass = normalizedSeatClass.equals("BUSINESS");
             boolean isEconomyClass = normalizedSeatClass.equals("ECONOMY") || 
-                                  (!isFirstClass && !isBusinessClass); // Default
-            
-            System.out.println("Class booleans: First=" + isFirstClass + 
-                             ", Business=" + isBusinessClass + 
-                             ", Economy=" + isEconomyClass);
+                                  (!isFirstClass && !isBusinessClass);
             
             FlightService.SeatPreferences preferences = new FlightService.SeatPreferences(
                 passengerCount,
                 excludedSeatsList,
-                windowSeat,  // Need on nüüd selgelt boolean väärtused, mitte String
-                extraLegroom, // Need on nüüd selgelt boolean väärtused, mitte String
+                windowSeat,
+                extraLegroom,
                 isFirstClass,
                 isBusinessClass,
                 isEconomyClass
             );
             
             List<Seats> recommendedSeats = flightService.recommendSeats(flightId, preferences);
-            System.out.println("Found " + recommendedSeats.size() + " recommended seats");
-            System.out.println("Window seats: " + recommendedSeats.stream().filter(Seats::getIsWindowSeat).count());
-            System.out.println("====================================\n");
-            
             return ResponseEntity.ok(recommendedSeats);
         } catch (Exception e) {
-            System.err.println("Error getting seat recommendations: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.badRequest().build();
         }
     }
 
+    // Võimaldab administraatoritel eemaldada lende, mida enam ei pakuta
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFlight(@PathVariable Long id) {
         flightService.deleteFlight(id);

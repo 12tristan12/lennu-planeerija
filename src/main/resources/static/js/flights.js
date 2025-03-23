@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const flightsList = document.getElementById('flights-list');
     
+    // Laadimine
     async function loadFlights() {
         try {
             const response = await fetch('/api/flights');
@@ -8,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('Failed to fetch flights');
             }
             const flights = await response.json();
-            console.log('Loaded flights:', flights); // Debug log
+            console.log('Loaded flights:', flights);
             displayFlights(flights);
         } catch (error) {
             console.error('Error loading flights:', error);
@@ -16,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Kuvamine
     function displayFlights(flights) {
         if (!flights || flights.length === 0) {
             flightsList.innerHTML = '<p>No flights available.</p>';
@@ -48,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         flightsList.innerHTML = flightsHTML;
     }
 
+    // Vormindamine
     function formatDateTime(dateTimeStr) {
         if (!dateTimeStr) return 'N/A';
         const date = new Date(dateTimeStr);
@@ -60,6 +63,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Load flights when page loads
     loadFlights();
 });

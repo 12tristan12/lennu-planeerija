@@ -17,84 +17,261 @@
         <div id="selected-seats-container" class="selected-seats-container">
             <h3>Valitud istmed:</h3>
             <ul id="selectedSeats"></ul>
-            <button id="confirm-seats" disabled>Kinnita valik</button>
+            <button id="confirm-seats" class="confirm-button" disabled>Kinnita valik</button>
         </div>
     </div>
 
     <script src="js/api.js"></script>
-    <script src="js/app.js"></script>
-    
-    <!-- Asendame modaali avamise lihtsa istmete laadimisega -->
     <script>
+        const selectedSeats = new Set();
+        
         document.addEventListener('DOMContentLoaded', function() {
-            // Võta flightId ja muud parameetrid URL-ist
             const urlParams = new URLSearchParams(window.location.search);
             const flightId = urlParams.get('flightId');
-            
-            // Saame soovitatud istmeklassi sessiooni salvestusest või URL-ist
-            let seatClass = sessionStorage.getItem('selectedSeatClass');
-            if (!seatClass) {
-                seatClass = (urlParams.get('seatClass') || 'ECONOMY').toUpperCase();
-            }
-            
-            // Kuvame valitud klassi
-            const selectedClassDisplay = document.getElementById('selected-class-display');
-            if (selectedClassDisplay) {
-                const classNames = {
-                    'ECONOMY': 'Economy',
-                    'BUSINESS': 'Business',
-                    'FIRST': 'First Class'
-                };
-                selectedClassDisplay.textContent = `Valitud klass: ${classNames[seatClass] || 'Economy'}`;
-            }
-            
-            // Laadime istmed ilma modaalita
-            async function loadSeatsDirectly() {
+            const confirmButton = document.getElementById('confirm-seats');
+
+            // Laadimine
+            async function loadSeats() {
                 try {
-                    const passengers = parseInt(urlParams.get('passengers')) || 1;
-                    
-                    // Võta istmed otse API-st
                     const seats = await api.getSeats(flightId);
-                    console.log(`Laaditud ${seats.length} istet`);
+                    console.log('Loaded seats:', seats.length);
                     
-                    // Importige eelistuste funktsiooni ja kasutaja eelistused URL-ist või sessionStorage-ist
-                    const windowSeatPref = sessionStorage.getItem('windowSeat') === 'true';
-                    const extraLegroomPref = sessionStorage.getItem('extraLegroom') === 'true';
-                    
-                    console.log("Laaditud eelistused:", {
-                        windowSeat: windowSeatPref,
-                        extraLegroom: extraLegroomPref
-                    });
-                    
-                    // Saame soovitused koos istmeklassiga JA kasutaja eelistustega
                     const recommendedSeats = await api.getRecommendedSeats(flightId, {
-                        passengers: passengers,
-                        windowSeat: windowSeatPref,  // Kasutame salvestatud eelistust, mitte kõvakooditud false
-                        extraLegroom: extraLegroomPref, // Kasutame salvestatud eelistust, mitte kõvakooditud false
-                        seatClass: seatClass,
+                        passengerCount: parseInt(urlParams.get('passengers') || '1'),
+                        windowSeat: sessionStorage.getItem('windowSeat') === 'true',
+                        extraLegroom: sessionStorage.getItem('extraLegroom') === 'true',
+                        seatClass: sessionStorage.getItem('selectedSeatClass') || 'ECONOMY',
                         excludedSeats: []
                     });
-                    console.log(`Leitud ${recommendedSeats.length} soovitatud istet`);
-
-                    // Kuvame istmed
-                    const seatsGrid = document.getElementById('seats-grid');
-                    if (seatsGrid) {
-                        // Kasutame olemasolevat renderSeats funktsiooni
-                        const recommendedSeatNumbers = recommendedSeats.map(seat => seat.seatNumber);
-                        if (typeof renderSeats === 'function') {
-                            renderSeats(seats, recommendedSeatNumbers);
-                        } else if (window.renderSeats) {
-                            window.renderSeats(seats, recommendedSeatNumbers);
-                        } else {
-                            console.error('renderSeats funktsioon puudub');
-                        }
-                    }
+                    const recommendedSeatNumbers = recommendedSeats.map(seat => seat.seatNumber);
+                    
+                    renderSeats(seats, recommendedSeatNumbers);
                 } catch (error) {
-                    console.error('Viga istmete laadimisel:', error);
+                    console.error('Error loading seats:', error);
                 }
             }
             
-            loadSeatsDirectly();
+            // Kujutamine
+            function renderSeats(seats, recommendedSeatNumbers) {
+                const seatsGrid = document.getElementById('seats-grid');
+                seatsGrid.innerHTML = '';
+                
+                const rowsMap = {};
+                
+                seats.forEach(seat => {
+                    const rowMatch = seat.seatNumber.match(/(\d+)/);
+                    const row = rowMatch ? rowMatch[0] : '';
+                    
+                    if (!rowsMap[row]) rowsMap[row] = [];
+                    rowsMap[row].push(seat);
+                });
+                
+                const sortedRows = Object.keys(rowsMap).sort((a, b) => parseInt(a) - parseInt(b));
+                
+                const headerRow = document.createElement('div');
+                headerRow.className = 'seat-row header-row';
+                
+                const labelLeft = document.createElement('div');
+                labelLeft.className = 'seat-label-group';
+                labelLeft.innerHTML = '<span>A</span><span>B</span><span>C</span>';
+                headerRow.appendChild(labelLeft);
+                
+                const aisleHeader = document.createElement('div');
+                aisleHeader.className = 'seat-aisle';
+                headerRow.appendChild(aisleHeader);
+                
+                const labelRight = document.createElement('div');
+                labelRight.className = 'seat-label-group';
+                labelRight.innerHTML = '<span>D</span><span>E</span><span>F</span>';
+                headerRow.appendChild(labelRight);
+                
+                seatsGrid.appendChild(headerRow);
+                
+                let currentClass = null;
+                
+                sortedRows.forEach((rowNum, index) => {
+                    const row = rowsMap[rowNum];
+                    
+                    const rowClass = determineRowClass(row);
+                    
+                    if (currentClass !== null && rowClass !== currentClass) {
+                        const separatorDiv = document.createElement('div');
+                        separatorDiv.className = 'class-separator';
+                        
+                        const labelDiv = document.createElement('div');
+                        labelDiv.className = 'class-label';
+                        labelDiv.textContent = getClassDisplayName(rowClass);
+                        separatorDiv.appendChild(labelDiv);
+                        
+                        seatsGrid.appendChild(separatorDiv);
+                    }
+                    
+                    currentClass = rowClass;
+                    
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'seat-row';
+                    
+                    rowDiv.dataset.seatClass = rowClass;
+                    
+                    const rowLabel = document.createElement('div');
+                    rowLabel.className = 'row-number';
+                    rowLabel.textContent = rowNum;
+                    rowDiv.appendChild(rowLabel);
+                    
+                    row.sort((a, b) => {
+                        const colA = a.seatNumber.slice(-1);
+                        const colB = b.seatNumber.slice(-1);
+                        return colA.localeCompare(colB);
+                    });
+                    
+                    const leftSeats = row.filter(seat => {
+                        const col = seat.seatNumber.slice(-1);
+                        return col === 'A' || col === 'B' || col === 'C';
+                    });
+                    
+                    const rightSeats = row.filter(seat => {
+                        const col = seat.seatNumber.slice(-1);
+                        return col === 'D' || col === 'E' || col === 'F';
+                    });
+                    
+                    const leftGroup = document.createElement('div');
+                    leftGroup.className = 'seat-group left-group';
+                    
+                    leftSeats.forEach(seat => {
+                        const seatDiv = createSeatElement(seat, recommendedSeatNumbers);
+                        leftGroup.appendChild(seatDiv);
+                    });
+                    
+                    rowDiv.appendChild(leftGroup);
+                    
+                    const aisle = document.createElement('div');
+                    aisle.className = 'seat-aisle';
+                    rowDiv.appendChild(aisle);
+                    
+                    const rightGroup = document.createElement('div');
+                    rightGroup.className = 'seat-group right-group';
+                    
+                    rightSeats.forEach(seat => {
+                        const seatDiv = createSeatElement(seat, recommendedSeatNumbers);
+                        rightGroup.appendChild(seatDiv);
+                    });
+                    
+                    rowDiv.appendChild(rightGroup);
+                    
+                    seatsGrid.appendChild(rowDiv);
+                });
+                
+                // Loomine
+                function createSeatElement(seat, recommendedSeatNumbers) {
+                    const isRecommended = recommendedSeatNumbers?.includes(seat.seatNumber);
+                    const seatDiv = document.createElement('div');
+                    
+                    seatDiv.className = seat.isBooked ? 'seat booked' : 'seat available';
+                    seatDiv.dataset.seatNumber = seat.seatNumber;
+                    
+                    if (seat.isFirstClass) seatDiv.classList.add('first-class');
+                    else if (seat.isBusinessClass) seatDiv.classList.add('business-class');
+                    else if (seat.isEconomyClass) seatDiv.classList.add('economy-class');
+                    
+                    if (isRecommended && !seat.isBooked) {
+                        seatDiv.classList.add('recommended');
+                        const star = document.createElement('span');
+                        star.className = 'recommendation-icon';
+                        star.textContent = '★';
+                        seatDiv.appendChild(star);
+                    }
+                    
+                    const seatNumber = document.createElement('span');
+                    seatNumber.className = 'seat-number';
+                    seatNumber.textContent = seat.seatNumber.slice(-1);
+                    seatDiv.appendChild(seatNumber);
+                    
+                    return seatDiv;
+                }
+                
+                // Klassifitseerimine
+                function determineRowClass(row) {
+                    if (row.some(seat => seat.isFirstClass)) {
+                        return 'first';
+                    }
+                    else if (row.some(seat => seat.isBusinessClass)) {
+                        return 'business';
+                    }
+                    else {
+                        return 'economy';
+                    }
+                }
+                
+                // Nimetamine
+                function getClassDisplayName(classCode) {
+                    switch (classCode) {
+                        case 'first': return 'First Class';
+                        case 'business': return 'Business Class';
+                        case 'economy': return 'Economy Class';
+                        default: return '';
+                    }
+                }
+                
+                setupSeatSelection();
+            }
+            
+            // Interaktiivsus
+            function setupSeatSelection() {
+                document.getElementById('seats-grid').addEventListener('click', function(e) {
+                    const seatElement = e.target.closest('.seat.available');
+                    if (!seatElement) return;
+                    
+                    const seatNumber = seatElement.dataset.seatNumber;
+                    
+                    if (seatNumber) {
+                        if (seatElement.classList.contains('selected')) {
+                            seatElement.classList.remove('selected');
+                            selectedSeats.delete(seatNumber);
+                            console.log('Unselected seat:', seatNumber);
+                        } else {
+                            seatElement.classList.add('selected');
+                            selectedSeats.add(seatNumber);
+                            console.log('Selected seat:', seatNumber);
+                        }
+                        
+                        updateSelectedSeatsList();
+                        confirmButton.disabled = selectedSeats.size === 0;
+                    }
+                });
+                
+                if (confirmButton) {
+                    confirmButton.addEventListener('click', async function() {
+                        if (selectedSeats.size === 0) {
+                            alert('Palun vali vähemalt üks istekoht');
+                            return;
+                        }
+                        
+                        try {
+                            const seatNumbers = Array.from(selectedSeats);
+                            console.log('Booking seats:', seatNumbers);
+                            
+                            await api.bookSeats(flightId, seatNumbers);
+                            alert('Istekohad edukalt broneeritud!');
+                            window.location.href = '/';
+                        } catch (error) {
+                            console.error('Error booking seats:', error);
+                            alert('Viga istekohtade broneerimisel');
+                        }
+                    });
+                }
+            }
+            
+            // Värskendamine
+            function updateSelectedSeatsList() {
+                const selectedSeatsList = document.getElementById('selectedSeats');
+                if (selectedSeatsList) {
+                    selectedSeatsList.innerHTML = Array.from(selectedSeats).map(seat => 
+                        `<li>${seat}</li>`
+                    ).join('');
+                }
+            }
+            
+            loadSeats();
         });
     </script>
 </body>

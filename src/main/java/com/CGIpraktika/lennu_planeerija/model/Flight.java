@@ -32,8 +32,10 @@ public class Flight {
     @OneToMany(mappedBy = "flight", cascade = CascadeType.ALL)
     private List<Seats> seats = new ArrayList<>();
 
+    // Loob tühja lennuobjekti JPA jaoks
     public Flight() {}
 
+    // Loob lennuobjekti kõigi vajalike lennuandmetega
     public Flight(String airline, String origin, String destination, String arrivalTime, String departureTime, Double price) {
         this.airline = airline;
         this.origin = origin;
@@ -43,30 +45,47 @@ public class Flight {
         this.price = price != null ? price : 49.0;
     }
 
+    // Tagastab lennuga seotud istekohad isteplaani kuvamiseks
     public List<Seats> getSeats(){
         return seats;
     }
+    
+    // Võimaldab lennu identifitseerimist API päringutes
     public Long getId(){
         return id;
     }
+    
+    // Tagastab lennufirma nime kuvamiseks kasutajaliideses
     public String getAirline(){
         return airline;
     }
+    
+    // Tagastab lennu lähtekoha broneerimise ja filtreerimise jaoks
     public String getOrigin(){
         return origin;
     }
+    
+    // Tagastab lennu sihtkoha broneerimise ja filtreerimise jaoks
     public String getDestination(){
         return destination;
     }
+    
+    // Tagastab lennu baashinna arvestamiseks istekohtade hinnapakkumisel
     public Double getPrice(){
         return price;
     }
+    
+    // Võimaldab administraatoritel uuendada lennu baashinda
     public void setPrice(Double price) {
         this.price = price != null ? price : 49.0;
     }
+    
+    // Tagastab väljumisaja reisigraafiku kuvamiseks ja sorteerimiseks
     public LocalDateTime getDepartureTime(){
         return departureTime;
     }
+    
+    // Tagastab saabumisaja reisigraafiku ja lennu kestuse arvutamiseks
     public LocalDateTime getArrivalTime(){
         return arrivalTime;
     }

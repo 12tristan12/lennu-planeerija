@@ -12,6 +12,7 @@ try {
 }
 
 const api = {
+    // Andmepäring lendude kuvamiseks kasutajaliideses
     async getFlights() {
         try {
             const response = await fetch(`${API_BASE_URL}/flights`);
@@ -23,12 +24,11 @@ const api = {
         }
     },
     
+    // Lennu üksikasjalik info kuvamiseks broneerimislehel
     async getFlightDetails(flightId) {
         try {
             const response = await fetch(`${API_BASE_URL}/flights/${flightId}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return await response.json();
         } catch (error) {
             console.error('API error:', error);
@@ -36,6 +36,7 @@ const api = {
         }
     },
     
+    // Istekohtade andmete hankimine lennuplaani kuvamiseks
     async getSeats(flightId) {
         try {
             const response = await fetch(`${API_BASE_URL}/flights/${flightId}/seats`);
@@ -56,56 +57,60 @@ const api = {
         }
     },
     
+    // Istekohtade broneerimine kasutaja valikute salvestamiseks
     async bookSeats(flightId, seatNumbers) {
+        console.log(`Booking seats for flight ${flightId}:`, seatNumbers);
+        
         try {
-            const response = await fetch(`${API_BASE_URL}/flights/${flightId}/book`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ seatNumbers })
-            });
-            if (!response.ok) throw new Error('Failed to book seats');
-            return await response.json();
+            const bookingPromises = seatNumbers.map(seatNumber => 
+                fetch(`${API_BASE_URL}/flights/${flightId}/seats?seatNumber=${seatNumber}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+            );
+            
+            const responses = await Promise.all(bookingPromises);
+            const anyFailed = responses.some(response => !response.ok);
+            
+            if (anyFailed) {
+                throw new Error('Failed to book one or more seats');
+            }
+            
+            return { success: true };
         } catch (error) {
-            console.error('API error:', error);
+            console.error('Error booking seats:', error);
             throw error;
         }
     },
     
-    // Kontrolli getRecommendedSeats funktsiooni
+    // Personaalsete istekohasoovituste pärimine reisija eelistuste järgi
     async getRecommendedSeats(flightId, preferences) {
-        const { passengers, windowSeat, extraLegroom, seatClass, excludedSeats } = preferences;
+        const { passengerCount = 1, windowSeat = false, extraLegroom = false, seatClass = 'ECONOMY', excludedSeats = [] } = preferences;
         
-        // Lisame rohkem logimist
-        console.log("API call getRecommendedSeats with clear details:", {
+        console.log('Getting recommended seats with preferences:', {
             flightId,
-            passengerCount: passengers,
-            windowSeatRequested: windowSeat, // === true? -> " + (windowSeat === true),
-            extraLegroomRequested: extraLegroom, // === true? -> " + (extraLegroom === true),
-            seatClass
+            passengerCount,
+            windowSeat,
+            extraLegroom,
+            seatClass,
+            excludedSeats
         });
         
         try {
             const params = new URLSearchParams();
-            params.append('passengerCount', passengers);
-            
-            // Kasutame selgelt true/false väärtuseid, mitte objekte
-            params.append('windowSeat', Boolean(windowSeat).toString());
-            params.append('extraLegroom', Boolean(extraLegroom).toString());
+            params.append('passengerCount', passengerCount);
+            params.append('windowSeat', windowSeat.toString());
+            params.append('extraLegroom', extraLegroom.toString());
             params.append('seatClass', seatClass || 'ECONOMY');
-            
-            console.log("Request parameters:", {
-                windowSeat: Boolean(windowSeat).toString(),
-                extraLegroom: Boolean(extraLegroom).toString()
-            });
             
             if (excludedSeats && excludedSeats.length > 0) {
                 excludedSeats.forEach(seat => params.append('excludedSeats', seat));
             }
             
-            const url = `/api/flights/${flightId}/recommended-seats?${params.toString()}`;
-            console.log("Full API URL:", url);
+            const url = `${API_BASE_URL}/flights/${flightId}/recommended-seats?${params.toString()}`;
+            console.log('API call URL:', url);
             
             const response = await fetch(url);
             
@@ -113,16 +118,16 @@ const api = {
                 throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
             }
             
-            const result = await response.json();
-            console.log(`API returned ${result.length} seats, with window seats: ${result.filter(s => s.isWindowSeat).length}`);
-            return result;
+            const data = await response.json();
+            console.log(`Found ${data.length} recommended seats:`, data.map(s => s.seatNumber));
+            return data;
         } catch (error) {
             console.error("Error in getRecommendedSeats:", error);
             throw error;
         }
     },
     
-    // Add method to update a single seat
+    // Istekohainfo muutmine administraatorite tööriistade jaoks
     async updateSeat(flightId, seatId, seatData) {
         try {
             const response = await fetch(`${API_BASE_URL}/flights/${flightId}/seats/${seatId}`, {
@@ -141,7 +146,7 @@ const api = {
         }
     },
     
-    // Add method to update seats by row
+    // Terve istekohtade rea klassi massuuendamine lennukonfiguratsiooni seadistamisel
     async updateSeatsByRow(flightId, rowNumber, classData) {
         try {
             const queryParams = new URLSearchParams(classData);
