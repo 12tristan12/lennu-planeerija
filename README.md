@@ -24,10 +24,12 @@ Installeeritud Java 17+
 Installeeritud Maven
 Git (valikuline, lähtekoodi kloonimiseks)
 ### Lähtekoodi hankimine
-"git clone https://github.com/12tristan12/lennu-planeerija.git
+´´´
+git clone https://github.com/12tristan12/lennu-planeerija.git
+´´´
 cd lennu-planeerija
 Rakenduse ehitamine ja käivitamine
-Rakendus käivitub aadressil http://localhost:8080"
+Rakendus käivitub aadressil http://localhost:8080
 
 ## Rakenduse arhitektuur
 ### Backend
